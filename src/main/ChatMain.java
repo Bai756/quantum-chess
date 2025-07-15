@@ -9,7 +9,7 @@ public class ChatMain extends JPanel{
     private JButton sendButton;
 
     public ChatMain() {
-        setTitle("Trash Chat");
-        setSize()
+//        setTitle("Trash Chat");
+//        setSize()
     }
 }
