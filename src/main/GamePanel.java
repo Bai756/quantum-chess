@@ -21,6 +21,7 @@ public class GamePanel extends JPanel implements Runnable {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
     final int FPS = 60;
+    ChatMain chatPanel = new ChatMain();
     Thread gameThread;
     Board board = new Board();
     Mouse mouse = new Mouse();
@@ -45,6 +46,10 @@ public class GamePanel extends JPanel implements Runnable {
         this.addMouseListener(this.mouse);
         this.setPieces();
         this.copyPieces(pieces, simPieces);
+        this.setLayout(null);
+        chatPanel.setBounds(800, 400, 300, 400);
+        this.add(chatPanel);
+
     }
 
     public void launchGame() {
@@ -265,6 +270,9 @@ public class GamePanel extends JPanel implements Runnable {
                 piece.twoMoved = false;
             }
         }
+        this.activeP = null;
+        String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
+        chatPanel.automsg(itsurturn);
     }
 
     private boolean canPromote() {
