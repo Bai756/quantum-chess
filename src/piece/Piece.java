@@ -2,7 +2,6 @@ package piece;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.IOException;
 import java.util.Objects;
 import javax.imageio.ImageIO;
@@ -95,7 +94,7 @@ public class Piece {
     }
 
     public boolean isWithinBoard(int targetCol, int targetRow) {
-        return targetCol >= 0 && targetCol <= 7 && targetRow >= 0 && targetCol <= 7;
+        return targetCol >= 0 && targetCol <= 7 && targetRow >= 0 && targetRow <= 7;
     }
 
     public boolean isSameSquare(int targetCol, int targetRow) {
@@ -217,6 +216,6 @@ public class Piece {
     }
 
     public void draw(Graphics2D g2) {
-        g2.drawImage(this.image, this.x + 5, this.y + 5, 90, 90, (ImageObserver)null);
+        g2.drawImage(this.image, this.x + 5, this.y + 5, 90, 90, null);
     }
 }

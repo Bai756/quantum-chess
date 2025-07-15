@@ -1,6 +1,5 @@
 package main;
 
-import java.awt.Component;
 import javax.swing.*;
 
 public class Main {
@@ -11,7 +10,7 @@ public class Main {
         GamePanel gp = new GamePanel();
         window.add(gp);
         window.pack();
-        window.setLocationRelativeTo((Component)null);
+        window.setLocationRelativeTo(null);
         window.setVisible(true);
 
         gp.launchGame();
