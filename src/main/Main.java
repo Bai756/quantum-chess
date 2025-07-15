@@ -1,12 +1,12 @@
 package main;
 
 import java.awt.Component;
-import javax.swing.JFrame;
+import javax.swing.*;
 
 public class Main {
     public static void main(String[] argc) {
         JFrame window = new JFrame("Chess");
-        window.setDefaultCloseOperation(3);
+        window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         window.setResizable(false);
         GamePanel gp = new GamePanel();
         window.add(gp);
@@ -15,5 +15,3 @@ public class Main {
         window.setVisible(true);
     }
 }
-
-
