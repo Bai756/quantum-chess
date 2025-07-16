@@ -59,9 +59,36 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setPieces() {
         // Initialize white pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 2));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(WHITE, col, 2));
+//        }
+
+        pieces.add(new Pawn(WHITE, 0, 2));
+        pieces.add(new Pawn(WHITE, 1, 2));
+        pieces.add(new Pawn(WHITE, 2, 2));
+        pieces.add(new Pawn(WHITE, 3, 2));
+
+        pieces.get(0).probability = 0.25;
+        pieces.get(1).probability = 0.25;
+        pieces.get(2).probability = 0.25;
+        pieces.get(3).probability = 0.25;
+
+        pieces.get(0).connectedPieces.add(pieces.get(1));
+        pieces.get(0).connectedPieces.add(pieces.get(2));
+        pieces.get(0).connectedPieces.add(pieces.get(3));
+
+        pieces.get(1).connectedPieces.add(pieces.get(0));
+        pieces.get(1).connectedPieces.add(pieces.get(2));
+        pieces.get(1).connectedPieces.add(pieces.get(3));
+
+        pieces.get(2).connectedPieces.add(pieces.get(0));
+        pieces.get(2).connectedPieces.add(pieces.get(1));
+        pieces.get(2).connectedPieces.add(pieces.get(3));
+
+        pieces.get(3).connectedPieces.add(pieces.get(0));
+        pieces.get(3).connectedPieces.add(pieces.get(1));
+        pieces.get(3).connectedPieces.add(pieces.get(2));
+
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
         pieces.add(new Knight(WHITE, 1, 7));
@@ -128,6 +155,10 @@ public class GamePanel extends JPanel implements Runnable {
             }
             if (!mouse.pressed && activeP != null) {
                 if (validSquare) {
+                    if (activeP.hittingP != null) {
+                        SuperPosition.resolveCapture(activeP, activeP.hittingP);
+                    }
+
                     copyPieces(simPieces, pieces);
                     activeP.updatePosition();
                     if (castlingP != null) {
@@ -315,17 +346,33 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         board.draw(g2);
-        for (Piece p : simPieces) {
-            p.draw(g2);
-        }
 
-        if (activeP != null && canMove) {
-            g2.setColor(Color.white);
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-            g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+        // Make pieces semi-transparent based on their probability
+        AlphaComposite original = (AlphaComposite) g2.getComposite();
+        for (Piece piece : simPieces) {
+            float alpha = (float) piece.probability;
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            piece.draw(g2);
+
+            piece.draw(g2);
+        }
+        g2.setComposite(original);
+
+        if (activeP != null ) {
+            if (canMove) {
+                g2.setColor(Color.white);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+            } else {
+                g2.setColor(Color.gray);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7F));
+                g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
+            }
             activeP.draw(g2);
         }
+
 
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2.setFont(new Font("Book Antiqua", Font.PLAIN, 35));
