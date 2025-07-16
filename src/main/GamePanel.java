@@ -60,7 +60,7 @@ public class GamePanel extends JPanel implements Runnable {
     public void setPieces() {
         // Initialize white pawns
         for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 6));
+            pieces.add(new Pawn(WHITE, col, 2));
         }
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
@@ -137,6 +137,7 @@ public class GamePanel extends JPanel implements Runnable {
                         gameOver = true;
                     } else if (canPromote()) {
                         promotion = true;
+                        return;
                     } else if (isDrawByInsufficientMaterial()) {
                         stalemate = true;
                     } else {
@@ -335,10 +336,6 @@ public class GamePanel extends JPanel implements Runnable {
             for (Piece piece : promotionP) {
                 g2.drawImage(piece.image, piece.getX(piece.col), piece.getY(piece.row), 100, 100, null);
             }
-        } else if (currentColor == WHITE) {
-            g2.drawString("White's turn", 850, 550);
-        } else {
-            g2.drawString("Black's turn", 850, 250);
         }
 
         if (gameOver) {
