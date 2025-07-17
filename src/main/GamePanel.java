@@ -259,14 +259,12 @@ public class GamePanel extends JPanel implements Runnable {
         int whiteBishops = 0, blackBishops = 0;
         int whiteKnights = 0, blackKnights = 0;
         int whiteOthers = 0, blackOthers = 0;
-        Integer whiteBishopColor = null, blackBishopColor = null;
 
         for (Piece piece : simPieces) {
             if (piece.type == Type.KING) continue;
             if (piece.color == WHITE) {
                 if (piece.type == Type.BISHOP) {
                     whiteBishops++;
-                    whiteBishopColor = (piece.col + piece.row) % 2;
                 } else if (piece.type == Type.KNIGHT) {
                     whiteKnights++;
                 } else {
@@ -275,7 +273,6 @@ public class GamePanel extends JPanel implements Runnable {
             } else {
                 if (piece.type == Type.BISHOP) {
                     blackBishops++;
-                    blackBishopColor = (piece.col + piece.row) % 2;
                 } else if (piece.type == Type.KNIGHT) {
                     blackKnights++;
                 } else {
