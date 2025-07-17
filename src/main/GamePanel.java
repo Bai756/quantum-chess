@@ -63,10 +63,10 @@ public class GamePanel extends JPanel implements Runnable {
 //            pieces.add(new Pawn(WHITE, col, 2));
 //        }
 
-        pieces.add(new Pawn(WHITE, 0, 2));
-        pieces.add(new Pawn(WHITE, 1, 2));
-        pieces.add(new Pawn(WHITE, 2, 2));
-        pieces.add(new Pawn(WHITE, 3, 2));
+        pieces.add(new Pawn(WHITE, 0, 3));
+        pieces.add(new Pawn(WHITE, 1, 3));
+        pieces.add(new Pawn(WHITE, 2, 3));
+        pieces.add(new Pawn(WHITE, 3, 3));
 
         pieces.get(0).probability = 0.25;
         pieces.get(1).probability = 0.25;
@@ -88,6 +88,33 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.get(3).connectedPieces.add(pieces.get(0));
         pieces.get(3).connectedPieces.add(pieces.get(1));
         pieces.get(3).connectedPieces.add(pieces.get(2));
+
+        // Initialize black pawns in row 2
+        pieces.add(new Pawn(BLACK, 0, 2));
+        pieces.add(new Pawn(BLACK, 1, 2));
+        pieces.add(new Pawn(BLACK, 2, 2));
+        pieces.add(new Pawn(BLACK, 3, 2));
+
+        pieces.get(4).probability = 0.25;
+        pieces.get(5).probability = 0.25;
+        pieces.get(6).probability = 0.25;
+        pieces.get(7).probability = 0.25;
+
+        pieces.get(4).connectedPieces.add(pieces.get(5));
+        pieces.get(4).connectedPieces.add(pieces.get(6));
+        pieces.get(4).connectedPieces.add(pieces.get(7));
+
+        pieces.get(5).connectedPieces.add(pieces.get(4));
+        pieces.get(5).connectedPieces.add(pieces.get(6));
+        pieces.get(5).connectedPieces.add(pieces.get(7));
+
+        pieces.get(6).connectedPieces.add(pieces.get(4));
+        pieces.get(6).connectedPieces.add(pieces.get(5));
+        pieces.get(6).connectedPieces.add(pieces.get(7));
+
+        pieces.get(7).connectedPieces.add(pieces.get(4));
+        pieces.get(7).connectedPieces.add(pieces.get(5));
+        pieces.get(7).connectedPieces.add(pieces.get(6));
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
@@ -138,6 +165,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        boolean success = false;
         if (promotion) {
             promoting();
         } else if (!gameOver) {
@@ -156,10 +184,16 @@ public class GamePanel extends JPanel implements Runnable {
             if (!mouse.pressed && activeP != null) {
                 if (validSquare) {
                     if (activeP.hittingP != null) {
-                        SuperPosition.resolveCapture(activeP, activeP.hittingP);
+                        success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
                     }
 
-                    copyPieces(simPieces, pieces);
+                    // If capture successful, copy the simulation else go back to original pieces
+                    if (success) {
+                        copyPieces(simPieces, pieces);
+                    } else {
+                        copyPieces(pieces, simPieces);
+                    }
+
                     activeP.updatePosition();
                     if (castlingP != null) {
                         castlingP.updatePosition();
