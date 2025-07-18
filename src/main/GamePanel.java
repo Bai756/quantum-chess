@@ -9,6 +9,8 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.util.ArrayList;
 import javax.swing.JPanel;
+import javax.swing.JButton;
+
 import piece.Bishop;
 import piece.King;
 import piece.Knight;
@@ -39,6 +41,9 @@ public class GamePanel extends JPanel implements Runnable {
     boolean gameOver;
     boolean stalemate;
 
+    private final JPanel moveChoicePanel;
+    private boolean awaitingMoveChoice = false;
+
     public GamePanel() {
         this.setPreferredSize(new Dimension(WIDTH, HEIGHT));
         this.setBackground(Color.black);
@@ -49,6 +54,24 @@ public class GamePanel extends JPanel implements Runnable {
         this.setLayout(null);
         chatPanel.setBounds(800, 400, 300, 400);
         this.add(chatPanel);
+
+        moveChoicePanel = new JPanel();
+        moveChoicePanel.setLayout(null);
+        moveChoicePanel.setBounds(820, 600, 250, 80); // Position it as needed
+        moveChoicePanel.setVisible(false);
+
+        JButton regularButton = new JButton("Regular");
+        regularButton.setBounds(0, 0, 120, 40);
+        JButton splitButton = new JButton("Split");
+        splitButton.setBounds(130, 0, 120, 40);
+
+        moveChoicePanel.add(regularButton);
+        moveChoicePanel.add(splitButton);
+        this.add(moveChoicePanel);
+
+        regularButton.addActionListener(e -> handleRegularMove());
+        splitButton.addActionListener(e -> handleSplitMove());
+
 
     }
 
@@ -168,7 +191,8 @@ public class GamePanel extends JPanel implements Runnable {
         boolean success = false;
         if (promotion) {
             promoting();
-        } else if (!gameOver) {
+        }
+        else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
                     for (Piece piece : simPieces) {
@@ -181,8 +205,13 @@ public class GamePanel extends JPanel implements Runnable {
                     simulate();
                 }
             }
+
             if (!mouse.pressed && activeP != null) {
-                if (validSquare) {
+                if (validSquare && !awaitingMoveChoice) {
+                    awaitingMoveChoice = true;
+                    moveChoicePanel.setVisible(true);
+                } else if (validSquare) {
+                  
                     if (activeP.hittingP != null) {
                         success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
                     }
@@ -197,6 +226,7 @@ public class GamePanel extends JPanel implements Runnable {
                     activeP.updatePosition();
                     if (castlingP != null) {
                         castlingP.updatePosition();
+
                     }
                     if (isKingCaptured()) {
                         gameOver = true;
@@ -214,6 +244,7 @@ public class GamePanel extends JPanel implements Runnable {
                 }
                 activeP = null;
             }
+
         }
     }
 
@@ -440,4 +471,32 @@ public class GamePanel extends JPanel implements Runnable {
         }
         return false;
     }
+
+    private void handleRegularMove() {
+        moveChoicePanel.setVisible(false);
+        awaitingMoveChoice = false;
+        copyPieces(simPieces, pieces);
+        activeP.updatePosition();
+        if (castlingP != null) {
+            castlingP.updatePosition();
+        }
+        if (isKingCaptured()) {
+            gameOver = true;
+        } else if (canPromote()) {
+            promotion = true;
+        } else if (isDrawByInsufficientMaterial()) {
+            stalemate = true;
+        } else {
+            changePlayer();
+        }
+        activeP = null;
+    }
+
+    private void handleSplitMove() {
+        moveChoicePanel.setVisible(false);
+        awaitingMoveChoice = false;
+        System.out.println("Split move chosen.");
+        handleRegularMove();
+    }
+
 }
