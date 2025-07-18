@@ -41,9 +41,7 @@ public class GamePanel extends JPanel implements Runnable {
     boolean gameOver;
     boolean stalemate;
 
-    private JPanel moveChoicePanel;
-    private JButton regularButton;
-    private JButton splitButton;
+    private final JPanel moveChoicePanel;
     private boolean awaitingMoveChoice = false;
 
     public GamePanel() {
@@ -57,15 +55,14 @@ public class GamePanel extends JPanel implements Runnable {
         chatPanel.setBounds(800, 400, 300, 400);
         this.add(chatPanel);
 
-        //All this is new stuff so don't delete it
         moveChoicePanel = new JPanel();
         moveChoicePanel.setLayout(null);
         moveChoicePanel.setBounds(820, 600, 250, 80); // Position it as needed
         moveChoicePanel.setVisible(false);
 
-        regularButton = new JButton("Regular");
+        JButton regularButton = new JButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
-        splitButton = new JButton("Split");
+        JButton splitButton = new JButton("Split");
         splitButton.setBounds(130, 0, 120, 40);
 
         moveChoicePanel.add(regularButton);
@@ -149,19 +146,16 @@ public class GamePanel extends JPanel implements Runnable {
                             break;
                         }
                     }
-                } /*else {
+                } else {
                     simulate();
-                }*/
+                }
             }
-            if (activeP != null) {
-                simulate();
-            }
+
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
                     awaitingMoveChoice = true;
                     moveChoicePanel.setVisible(true);
-                    return;
-                } else  {
+                } else if (validSquare) {
                     copyPieces(simPieces, pieces);
                     activeP.updatePosition();
                     if (castlingP != null) {
@@ -177,10 +171,10 @@ public class GamePanel extends JPanel implements Runnable {
                     } else {
                         changePlayer();
                     }
-                } /*else {
+                } else {
                     copyPieces(pieces, simPieces);
                     activeP.resetPosition();
-                }*/
+                }
                 activeP = null;
             }
 
