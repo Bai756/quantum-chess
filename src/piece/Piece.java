@@ -3,6 +3,7 @@ package piece;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import main.GamePanel;
@@ -21,6 +22,8 @@ public class Piece {
     public Piece hittingP;
     public boolean moved;
     public boolean twoMoved;
+    public double probability = 1.0;
+    public ArrayList<Piece> connectedPieces = new ArrayList<>();
 
     public Piece(int color, int col, int row) {
         this.color = color;
@@ -217,5 +220,18 @@ public class Piece {
 
     public void draw(Graphics2D g2) {
         g2.drawImage(this.image, this.x + 5, this.y + 5, 90, 90, null);
+    }
+
+    public Piece split() { // note, this does not copy moved or twoMoved, so this will need to be dealt with later
+        this.probability *= 0.5;
+
+        Piece sibling = new Piece(this.color, this.col, this.row);
+        sibling.type = this.type;
+        sibling.image = this.image;
+        sibling.probability = this.probability;
+
+        this.connectedPieces.add(sibling);
+        sibling.connectedPieces.add(this);
+        return sibling;
     }
 }
