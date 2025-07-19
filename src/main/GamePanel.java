@@ -188,6 +188,9 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        System.out.println("update");
+        System.out.println(awaitingMoveChoice);
+        System.out.println(activeP);
         boolean success = false;
         if (promotion) {
             promoting();
@@ -426,15 +429,12 @@ public class GamePanel extends JPanel implements Runnable {
         if (activeP != null ) {
             if (canMove) {
                 g2.setColor(Color.white);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-                g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
             } else {
                 g2.setColor(Color.gray);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7F));
-                g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
             }
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+            g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
             activeP.draw(g2);
         }
 
@@ -497,10 +497,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void handleSplitMove() {
         moveChoicePanel.setVisible(false);
-        awaitingMoveChoice = false;
         System.out.println("Split move chosen.");
-//        SuperPosition.resolveCapture();
-
+        Piece newPiece = SuperPosition.handleSplit(activeP);
+        awaitingMoveChoice = false;
     }
 
 }

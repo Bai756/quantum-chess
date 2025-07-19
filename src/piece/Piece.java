@@ -4,12 +4,14 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import main.GamePanel;
 import main.Type;
 
-public class Piece {
+public class Piece implements Cloneable {
     public Type type;
     public BufferedImage image;
     public int x;
@@ -222,16 +224,24 @@ public class Piece {
         g2.drawImage(this.image, this.x + 5, this.y + 5, 90, 90, null);
     }
 
-    public Piece split() { // note, this does not copy moved or twoMoved, so this will need to be dealt with later
-        this.probability *= 0.5;
+    public Piece copy() {
+        return clone(new HashMap<>());
+    }
 
-        Piece sibling = new Piece(this.color, this.col, this.row);
-        sibling.type = this.type;
-        sibling.image = this.image;
-        sibling.probability = this.probability;
-
-        this.connectedPieces.add(sibling);
-        sibling.connectedPieces.add(this);
-        return sibling;
+    private Piece clone(Map<Piece, Piece> clonedMap) {
+        if (clonedMap.containsKey(this)) {
+            return clonedMap.get(this);
+        }
+        try {
+            Piece cloned = (Piece) super.clone();
+            cloned.connectedPieces = new ArrayList<>();
+            clonedMap.put(this, cloned);
+            for (Piece p : this.connectedPieces) {
+                cloned.connectedPieces.add(p.clone(clonedMap));
+            }
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }
