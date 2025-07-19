@@ -69,7 +69,7 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.add(splitButton);
         this.add(moveChoicePanel);
 
-        regularButton.addActionListener(e -> handleRegularMove());
+        regularButton.addActionListener(e -> handleMove());
         splitButton.addActionListener(e -> handleSplitMove());
 
 
@@ -214,7 +214,13 @@ public class GamePanel extends JPanel implements Runnable {
                     awaitingMoveChoice = true;
                     int x = activeP.x;
                     int y = activeP.y;
-                    moveChoicePanel.setBounds(x, y, 250, 40);
+                    int panelWidth = 250;
+                    int panelHeight = 40;
+                    int maxX = GamePanel.WIDTH - panelWidth;
+                    int maxY = GamePanel.HEIGHT - panelHeight;
+                    x = Math.min(x, maxX);
+                    y = Math.min(y, maxY);
+                    moveChoicePanel.setBounds(x, y, panelWidth, panelHeight);
                     moveChoicePanel.setVisible(true);
 
                 } else if (!awaitingMoveChoice) {
