@@ -188,9 +188,6 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
-        System.out.println("update");
-        System.out.println(awaitingMoveChoice);
-        System.out.println(activeP);
         boolean success = false;
         if (promotion) {
             promoting();
@@ -216,41 +213,14 @@ public class GamePanel extends JPanel implements Runnable {
                     int y = activeP.y;
                     moveChoicePanel.setBounds(x, y, 250, 40);
                     moveChoicePanel.setVisible(true);
-                } else if (validSquare) {
-                  
-                    if (activeP.hittingP != null) {
-                        success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
-                    }
-
-                    // If capture successful, copy the simulation else go back to original pieces
-                    if (success) {
-                        copyPieces(simPieces, pieces);
-                    } else {
-                        copyPieces(pieces, simPieces);
-                    }
-
-                    activeP.updatePosition();
-                    if (castlingP != null) {
-                        castlingP.updatePosition();
-
-                    }
-                    if (isKingCaptured()) {
-                        gameOver = true;
-                    } else if (canPromote()) {
-                        promotion = true;
-                        return;
-                    } else if (isDrawByInsufficientMaterial()) {
-                        stalemate = true;
-                    } else {
-                        changePlayer();
-                    }
+                } else if (awaitingMoveChoice) {
+                    return;
                 } else {
                     copyPieces(pieces, simPieces);
                     activeP.resetPosition();
+                    activeP = null;
                 }
-                activeP = null;
             }
-
         }
     }
 
@@ -497,9 +467,51 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void handleSplitMove() {
-        moveChoicePanel.setVisible(false);
-        System.out.println("Split move chosen.");
         Piece newPiece = SuperPosition.handleSplit(activeP);
+
+        System.out.println(newPiece.row + " " + newPiece.col);
+        System.out.println(activeP.row + " " + activeP.col);
+        System.out.println(activeP.preRow + " " + activeP.preCol);
+
+        newPiece.row = activeP.preRow;
+        newPiece.col = activeP.preCol;
+
+        newPiece.updatePosition();
+
+        awaitingMoveChoice = false;
+
+        handleMove();
+    }
+
+    private void handleMove() {
+        boolean success = false;
+        if (activeP.hittingP != null) {
+            success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+        }
+
+        // If capture successful, copy the simulation else go back to original pieces
+        if (success) {
+            copyPieces(simPieces, pieces);
+        } else {
+            copyPieces(pieces, simPieces);
+        }
+
+        activeP.updatePosition();
+        if (castlingP != null) {
+            castlingP.updatePosition();
+
+        }
+        if (isKingCaptured()) {
+            gameOver = true;
+        } else if (canPromote()) {
+            return;
+        } else if (isDrawByInsufficientMaterial()) {
+            stalemate = true;
+        } else {
+            changePlayer();
+        }
+        activeP = null;
+        moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
     }
 
