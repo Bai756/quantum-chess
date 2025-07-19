@@ -60,6 +60,66 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.setBounds(820, 600, 250, 80); // Position it as needed
         moveChoicePanel.setVisible(false);
 
+        JPanel promotionPanel = new JPanel();
+        promotionPanel.setLayout(null);
+        promotionPanel.setVisible(false);
+        JButton queenButton = new JButton("Queen");
+        queenButton.setBounds(0, 0, 120, 40);
+        queenButton.addActionListener(e -> {
+            simPieces.remove(activeP.getIndex());
+            simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
+            copyPieces(simPieces, pieces);
+            promotionPanel.setVisible(false);
+            promotion = false;
+            changePlayer();
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
+            activeP = null;
+        });
+        JButton knightButton = new JButton("Knight");
+        knightButton.setBounds(0, 120, 120, 40);
+        knightButton.addActionListener(e -> {
+            simPieces.remove(activeP.getIndex());
+            simPieces.add(new Knight(currentColor, activeP.col, activeP.row));
+            copyPieces(simPieces, pieces);
+            promotionPanel.setVisible(false);
+            promotion = false;
+            changePlayer();
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Knight.");
+            activeP = null;
+        });
+        JButton rookButton = new JButton("Rook");
+        rookButton.setBounds(0, 40, 120, 40);
+        rookButton.addActionListener(e -> {
+            simPieces.remove(activeP.getIndex());
+            simPieces.add(new Rook(currentColor, activeP.col, activeP.row));
+            copyPieces(simPieces, pieces);
+            promotionPanel.setVisible(false);
+            promotion = false;
+            changePlayer();
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Rook.");
+            activeP = null;
+        });
+        JButton bishopButton = new JButton("Bishop");
+        bishopButton.setBounds(0, 80, 120, 40);
+        bishopButton.addActionListener(e -> {
+            simPieces.remove(activeP.getIndex());
+            simPieces.add(new Bishop(currentColor, activeP.col, activeP.row));
+            copyPieces(simPieces, pieces);
+            promotionPanel.setVisible(false);
+            promotion = false;
+            changePlayer();
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Bishop.");
+            activeP = null;
+        });
+        promotionPanel.add(queenButton);
+        promotionPanel.add(knightButton);
+        promotionPanel.add(rookButton);
+        promotionPanel.add(bishopButton);
+        promotionPanel.setBackground(new Color(210, 165, 125));
+        this.setLayout(null);
+        promotionPanel.setBounds(400, 300, 120, 160); // position it near center or wherever fits
+        this.add(promotionPanel);
+
         JButton regularButton = new JButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
         JButton splitButton = new JButton("Split");
