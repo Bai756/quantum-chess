@@ -4,8 +4,6 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import main.GamePanel;
@@ -225,20 +223,15 @@ public class Piece implements Cloneable {
     }
 
     public Piece copy() {
-        return clone(new HashMap<>());
+        return clone();
     }
 
-    private Piece clone(Map<Piece, Piece> clonedMap) {
-        if (clonedMap.containsKey(this)) {
-            return clonedMap.get(this);
-        }
+    @Override
+    public Piece clone() {
         try {
             Piece cloned = (Piece) super.clone();
             cloned.connectedPieces = new ArrayList<>();
-            clonedMap.put(this, cloned);
-            for (Piece p : this.connectedPieces) {
-                cloned.connectedPieces.add(p.clone(clonedMap));
-            }
+            cloned.connectedPieces.addAll(this.connectedPieces);
             return cloned;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
