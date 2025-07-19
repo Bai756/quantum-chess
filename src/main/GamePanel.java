@@ -209,6 +209,9 @@ public class GamePanel extends JPanel implements Runnable {
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
                     awaitingMoveChoice = true;
+                    int x = activeP.x;
+                    int y = activeP.y;
+                    moveChoicePanel.setBounds(x, y, 250, 40);
                     moveChoicePanel.setVisible(true);
                 } else if (validSquare) {
                   
@@ -496,7 +499,8 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
         System.out.println("Split move chosen.");
-        handleRegularMove();
+//        SuperPosition.resolveCapture();
+
     }
 
 }
