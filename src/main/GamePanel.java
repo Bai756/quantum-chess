@@ -66,20 +66,7 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel.setVisible(false);
         promotionPanel.setBounds(400, 300, 120, 160); // position it near center or wherever fits
 
-
-
-        JButton queenButton = new JButton("Queen");
-        queenButton.setBounds(0, 0, 120, 40);
-        queenButton.addActionListener(e -> {
-            simPieces.remove(activeP.getIndex());
-            simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
-            copyPieces(simPieces, pieces);
-            promotionPanel.setVisible(false);
-            promotion = false;
-            changePlayer();
-            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
-            activeP = null;
-        });
+        JButton queenButton = getJButton();
         JButton knightButton = new JButton("Knight");
         knightButton.setBounds(0, 120, 120, 40);
         knightButton.addActionListener(e -> {
@@ -92,6 +79,7 @@ public class GamePanel extends JPanel implements Runnable {
             chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Knight.");
             activeP = null;
         });
+
         JButton rookButton = new JButton("Rook");
         rookButton.setBounds(0, 40, 120, 40);
         rookButton.addActionListener(e -> {
@@ -104,6 +92,7 @@ public class GamePanel extends JPanel implements Runnable {
             chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Rook.");
             activeP = null;
         });
+
         JButton bishopButton = new JButton("Bishop");
         bishopButton.setBounds(0, 80, 120, 40);
         bishopButton.addActionListener(e -> {
@@ -116,6 +105,7 @@ public class GamePanel extends JPanel implements Runnable {
             chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Bishop.");
             activeP = null;
         });
+
         promotionPanel.add(queenButton);
         promotionPanel.add(knightButton);
         promotionPanel.add(rookButton);
@@ -132,10 +122,24 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.add(splitButton);
         this.add(moveChoicePanel);
 
-        regularButton.addActionListener(e -> handleRegularMove());
+        regularButton.addActionListener(e -> handleMove());
         splitButton.addActionListener(e -> handleSplitMove());
+    }
 
-
+    private JButton getJButton() {
+        JButton queenButton = new JButton("Queen");
+        queenButton.setBounds(0, 0, 120, 40);
+        queenButton.addActionListener(e -> {
+            simPieces.remove(activeP.getIndex());
+            simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
+            copyPieces(simPieces, pieces);
+            promotionPanel.setVisible(false);
+            promotion = false;
+            changePlayer();
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
+            activeP = null;
+        });
+        return queenButton;
     }
 
     public void launchGame() {
@@ -145,62 +149,62 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setPieces() {
         // Initialize white pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(WHITE, col, 2));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(WHITE, col, 2));
+        }
 
-        pieces.add(new Pawn(WHITE, 0, 3));
-        pieces.add(new Pawn(WHITE, 1, 3));
-        pieces.add(new Pawn(WHITE, 2, 3));
-        pieces.add(new Pawn(WHITE, 3, 3));
-
-        pieces.get(0).probability = 0.25;
-        pieces.get(1).probability = 0.25;
-        pieces.get(2).probability = 0.25;
-        pieces.get(3).probability = 0.25;
-
-        pieces.get(0).connectedPieces.add(pieces.get(1));
-        pieces.get(0).connectedPieces.add(pieces.get(2));
-        pieces.get(0).connectedPieces.add(pieces.get(3));
-
-        pieces.get(1).connectedPieces.add(pieces.get(0));
-        pieces.get(1).connectedPieces.add(pieces.get(2));
-        pieces.get(1).connectedPieces.add(pieces.get(3));
-
-        pieces.get(2).connectedPieces.add(pieces.get(0));
-        pieces.get(2).connectedPieces.add(pieces.get(1));
-        pieces.get(2).connectedPieces.add(pieces.get(3));
-
-        pieces.get(3).connectedPieces.add(pieces.get(0));
-        pieces.get(3).connectedPieces.add(pieces.get(1));
-        pieces.get(3).connectedPieces.add(pieces.get(2));
-
-        // Initialize black pawns in row 2
-        pieces.add(new Pawn(BLACK, 0, 2));
-        pieces.add(new Pawn(BLACK, 1, 2));
-        pieces.add(new Pawn(BLACK, 2, 2));
-        pieces.add(new Pawn(BLACK, 3, 2));
-
-        pieces.get(4).probability = 0.25;
-        pieces.get(5).probability = 0.25;
-        pieces.get(6).probability = 0.25;
-        pieces.get(7).probability = 0.25;
-
-        pieces.get(4).connectedPieces.add(pieces.get(5));
-        pieces.get(4).connectedPieces.add(pieces.get(6));
-        pieces.get(4).connectedPieces.add(pieces.get(7));
-
-        pieces.get(5).connectedPieces.add(pieces.get(4));
-        pieces.get(5).connectedPieces.add(pieces.get(6));
-        pieces.get(5).connectedPieces.add(pieces.get(7));
-
-        pieces.get(6).connectedPieces.add(pieces.get(4));
-        pieces.get(6).connectedPieces.add(pieces.get(5));
-        pieces.get(6).connectedPieces.add(pieces.get(7));
-
-        pieces.get(7).connectedPieces.add(pieces.get(4));
-        pieces.get(7).connectedPieces.add(pieces.get(5));
-        pieces.get(7).connectedPieces.add(pieces.get(6));
+//        pieces.add(new Pawn(WHITE, 0, 3));
+//        pieces.add(new Pawn(WHITE, 1, 3));
+//        pieces.add(new Pawn(WHITE, 2, 3));
+//        pieces.add(new Pawn(WHITE, 3, 3));
+//
+//        pieces.get(0).probability = 0.25;
+//        pieces.get(1).probability = 0.25;
+//        pieces.get(2).probability = 0.25;
+//        pieces.get(3).probability = 0.25;
+//
+//        pieces.get(0).connectedPieces.add(pieces.get(1));
+//        pieces.get(0).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(1).connectedPieces.add(pieces.get(0));
+//        pieces.get(1).connectedPieces.add(pieces.get(2));
+//        pieces.get(1).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(2).connectedPieces.add(pieces.get(0));
+//        pieces.get(2).connectedPieces.add(pieces.get(1));
+//        pieces.get(2).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(3).connectedPieces.add(pieces.get(0));
+//        pieces.get(3).connectedPieces.add(pieces.get(1));
+//        pieces.get(3).connectedPieces.add(pieces.get(2));
+//
+//        // Initialize black pawns in row 2
+//        pieces.add(new Pawn(BLACK, 0, 2));
+//        pieces.add(new Pawn(BLACK, 1, 2));
+//        pieces.add(new Pawn(BLACK, 2, 2));
+//        pieces.add(new Pawn(BLACK, 3, 2));
+//
+//        pieces.get(4).probability = 0.25;
+//        pieces.get(5).probability = 0.25;
+//        pieces.get(6).probability = 0.25;
+//        pieces.get(7).probability = 0.25;
+//
+//        pieces.get(4).connectedPieces.add(pieces.get(5));
+//        pieces.get(4).connectedPieces.add(pieces.get(6));
+//        pieces.get(4).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(5).connectedPieces.add(pieces.get(4));
+//        pieces.get(5).connectedPieces.add(pieces.get(6));
+//        pieces.get(5).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(6).connectedPieces.add(pieces.get(4));
+//        pieces.get(6).connectedPieces.add(pieces.get(5));
+//        pieces.get(6).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(7).connectedPieces.add(pieces.get(4));
+//        pieces.get(7).connectedPieces.add(pieces.get(5));
+//        pieces.get(7).connectedPieces.add(pieces.get(6));
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
@@ -251,7 +255,6 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
-        boolean success = false;
         if (promotion) {
             promoting();
             promotionPanel.setVisible(true);
@@ -265,13 +268,17 @@ public class GamePanel extends JPanel implements Runnable {
                             break;
                         }
                     }
-                } else {
+                } else if (!awaitingMoveChoice) {
                     simulate();
                 }
             }
 
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
+                    if (activeP.hittingP != null) {
+                        handleMove();
+                        return;
+                    }
                     awaitingMoveChoice = true;
                     int x = activeP.x;
                     int y = activeP.y;
@@ -282,9 +289,7 @@ public class GamePanel extends JPanel implements Runnable {
                     else //if its too high
                         moveChoicePanel.setBounds(x, y - 20, 250, 40);
                     moveChoicePanel.setVisible(true);
-                } else if (awaitingMoveChoice) {
-                    return;
-                } else {
+                } else if (!awaitingMoveChoice) {
                     copyPieces(pieces, simPieces);
                     activeP.resetPosition();
                     activeP = null;
@@ -468,26 +473,16 @@ public class GamePanel extends JPanel implements Runnable {
         if (activeP != null ) {
             if (canMove) {
                 g2.setColor(Color.white);
-            } else {
-                g2.setColor(Color.gray);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
             }
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-            g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
             activeP.draw(g2);
         }
 
-
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2.setFont(new Font("Book Antiqua", Font.PLAIN, 35));
         g2.setColor(Color.white);
-
-        if (promotion) {
-            g2.drawString("Promote to:", 840, 150);
-            for (Piece piece : promotionP) {
-                g2.drawImage(piece.image, piece.getX(piece.col), piece.getY(piece.row), 100, 100, null);
-            }
-        }
 
         if (gameOver) {
             String s;
@@ -514,33 +509,8 @@ public class GamePanel extends JPanel implements Runnable {
         return false;
     }
 
-    private void handleRegularMove() {
-        moveChoicePanel.setVisible(false);
-        awaitingMoveChoice = false;
-        copyPieces(simPieces, pieces);
-        activeP.updatePosition();
-        if (castlingP != null) {
-            castlingP.updatePosition();
-        }
-        if (isKingCaptured()) {
-            gameOver = true;
-        } else if (canPromote()) {
-            promotion = true;
-        } else if (isDrawByInsufficientMaterial()) {
-            stalemate = true;
-        } else {
-            changePlayer();
-
-        }
-        activeP = null;
-    }
-
     private void handleSplitMove() {
         Piece newPiece = SuperPosition.handleSplit(activeP);
-
-        System.out.println(newPiece.row + " " + newPiece.col);
-        System.out.println(activeP.row + " " + activeP.col);
-        System.out.println(activeP.preRow + " " + activeP.preCol);
 
         newPiece.row = activeP.preRow;
         newPiece.col = activeP.preCol;
@@ -573,6 +543,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (isKingCaptured()) {
             gameOver = true;
         } else if (canPromote()) {
+            promotion = true;
             return;
         } else if (isDrawByInsufficientMaterial()) {
             stalemate = true;
