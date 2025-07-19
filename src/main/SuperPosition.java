@@ -63,12 +63,13 @@ public class SuperPosition {
 
     public static Piece handleSplit(Piece piece) {
         Piece newPiece = piece.copy();
-        System.out.println("Splitting piece: " + piece.type + " at (" + piece.col + ", " + piece.row + ")");
         newPiece.probability = piece.probability / 2.0;
         piece.probability /= 2.0;
 
         piece.connectedPieces.add(newPiece);
         newPiece.connectedPieces.add(piece);
+        GamePanel.pieces.add(newPiece);
+        GamePanel.simPieces.add(newPiece);
 
         return newPiece;
     }
