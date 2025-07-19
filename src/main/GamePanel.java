@@ -491,6 +491,7 @@ public class GamePanel extends JPanel implements Runnable {
             stalemate = true;
         } else {
             changePlayer();
+
         }
         activeP = null;
     }
