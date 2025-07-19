@@ -66,8 +66,14 @@ public class SuperPosition {
         newPiece.probability = piece.probability / 2.0;
         piece.probability /= 2.0;
 
+        for (Piece connected : piece.connectedPieces) {
+            if (connected != piece) {
+                connected.connectedPieces.add(newPiece);
+            }
+        }
         piece.connectedPieces.add(newPiece);
         newPiece.connectedPieces.add(piece);
+
         GamePanel.pieces.add(newPiece);
         GamePanel.simPieces.add(newPiece);
 
