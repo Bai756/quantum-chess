@@ -19,6 +19,8 @@ import piece.Piece;
 import piece.Queen;
 import piece.Rook;
 
+import static java.awt.AlphaComposite.getInstance;
+
 public class GamePanel extends JPanel implements Runnable {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
@@ -29,7 +31,6 @@ public class GamePanel extends JPanel implements Runnable {
     Mouse mouse = new Mouse();
     public static ArrayList<Piece> pieces = new ArrayList<>();
     public static ArrayList<Piece> simPieces = new ArrayList<>();
-    ArrayList<Piece> promotionP = new ArrayList<>();
     Piece activeP;
     public static Piece castlingP;
     public static final int WHITE = 0;
@@ -177,9 +178,9 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(BLACK, col, 1));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(BLACK, col, 1));
+//        }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
         pieces.add(new Knight(BLACK, 1, 0));
@@ -234,18 +235,18 @@ public class GamePanel extends JPanel implements Runnable {
 
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
-                    if (activeP.hittingP != null) {
+                    if (activeP.hittingP != null || (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)) { // If it's a capture or promotion
                         handleMove();
                         return;
                     }
                     awaitingMoveChoice = true;
                     int x = activeP.x;
                     int y = activeP.y;
-                    if (x <= 550 && y >= 40)//normal move
+                    if (x <= 550 && y >= 40) { // Normal move
                         moveChoicePanel.setBounds(x, y, 250, 40);
-                    else if (x > 550)//if its on the right
+                    } else if (x > 550) { // If it's on the right
                         moveChoicePanel.setBounds(x - 200, y, 250, 40);
-                    else //if its too high
+                    } else // If it's too high
                         moveChoicePanel.setBounds(x, y - 20, 250, 40);
                     moveChoicePanel.setVisible(true);
                 } else if (!awaitingMoveChoice) {
@@ -382,12 +383,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (activeP.type != Type.PAWN) return false;
 
         if ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)) {
-            promotionP.clear();
-            promotionP.add(new Queen(currentColor, 9, 2));
-            promotionP.add(new Rook(currentColor, 9, 3));
-            promotionP.add(new Bishop(currentColor, 9, 4));
-            promotionP.add(new Knight(currentColor, 9, 5));
-            return true;
+            return SuperPosition.checkPromotion(activeP);
         }
         return false;
     }
@@ -425,7 +421,7 @@ public class GamePanel extends JPanel implements Runnable {
         AlphaComposite original = (AlphaComposite) g2.getComposite();
         for (Piece piece : simPieces) {
             float alpha = (float) piece.probability;
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            g2.setComposite(getInstance(AlphaComposite.SRC_OVER, alpha));
             piece.draw(g2);
 
             piece.draw(g2);
@@ -435,10 +431,10 @@ public class GamePanel extends JPanel implements Runnable {
         if (activeP != null ) {
             if (canMove) {
                 g2.setColor(Color.white);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                g2.setComposite(getInstance(AlphaComposite.SRC_OVER, 0.7f));
                 g2.fillRect(activeP.col * 100, activeP.row * 100, 100, 100);
             }
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+            g2.setComposite(getInstance(AlphaComposite.SRC_OVER, 1f));
             activeP.draw(g2);
         }
 
@@ -505,6 +501,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (isKingCaptured()) {
             gameOver = true;
         } else if (canPromote()) {
+            System.out.println("Promoting");
             promotion = true;
             return;
         } else if (isDrawByInsufficientMaterial()) {

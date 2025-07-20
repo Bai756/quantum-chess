@@ -79,4 +79,16 @@ public class SuperPosition {
 
         return newPiece;
     }
+
+    public static boolean checkPromotion(Piece piece) {
+        boolean here = Math.random() < piece.probability;
+        System.out.println("Check promotion: " + piece + " - " + here);
+        if (here) {
+            collapseTo(piece);
+            return true;
+        } else {
+            removePiece(piece);
+            return false;
+        }
+    }
 }
