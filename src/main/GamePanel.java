@@ -66,45 +66,21 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel.setVisible(false);
         promotionPanel.setBounds(400, 300, 120, 160); // position it near center or wherever fits
 
-        JButton queenButton = getJButton();
+        JButton queenButton = new JButton("Queen");
+        queenButton.setBounds(0, 0, 120, 40);
+        queenButton.addActionListener(_ -> handlePromotion(Type.QUEEN));
+
         JButton knightButton = new JButton("Knight");
         knightButton.setBounds(0, 120, 120, 40);
-        knightButton.addActionListener(e -> {
-            simPieces.remove(activeP.getIndex());
-            simPieces.add(new Knight(currentColor, activeP.col, activeP.row));
-            copyPieces(simPieces, pieces);
-            promotionPanel.setVisible(false);
-            promotion = false;
-            changePlayer();
-            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Knight.");
-            activeP = null;
-        });
+        knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
         JButton rookButton = new JButton("Rook");
         rookButton.setBounds(0, 40, 120, 40);
-        rookButton.addActionListener(e -> {
-            simPieces.remove(activeP.getIndex());
-            simPieces.add(new Rook(currentColor, activeP.col, activeP.row));
-            copyPieces(simPieces, pieces);
-            promotionPanel.setVisible(false);
-            promotion = false;
-            changePlayer();
-            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Rook.");
-            activeP = null;
-        });
+        rookButton.addActionListener(_ -> handlePromotion(Type.ROOK));
 
         JButton bishopButton = new JButton("Bishop");
         bishopButton.setBounds(0, 80, 120, 40);
-        bishopButton.addActionListener(e -> {
-            simPieces.remove(activeP.getIndex());
-            simPieces.add(new Bishop(currentColor, activeP.col, activeP.row));
-            copyPieces(simPieces, pieces);
-            promotionPanel.setVisible(false);
-            promotion = false;
-            changePlayer();
-            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Bishop.");
-            activeP = null;
-        });
+        bishopButton.addActionListener(_ -> handlePromotion(Type.BISHOP));
 
         promotionPanel.add(queenButton);
         promotionPanel.add(knightButton);
@@ -122,24 +98,8 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.add(splitButton);
         this.add(moveChoicePanel);
 
-        regularButton.addActionListener(e -> handleMove());
-        splitButton.addActionListener(e -> handleSplitMove());
-    }
-
-    private JButton getJButton() {
-        JButton queenButton = new JButton("Queen");
-        queenButton.setBounds(0, 0, 120, 40);
-        queenButton.addActionListener(e -> {
-            simPieces.remove(activeP.getIndex());
-            simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
-            copyPieces(simPieces, pieces);
-            promotionPanel.setVisible(false);
-            promotion = false;
-            changePlayer();
-            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
-            activeP = null;
-        });
-        return queenButton;
+        regularButton.addActionListener(_ -> handleMove());
+        splitButton.addActionListener(_ -> handleSplitMove());
     }
 
     public void launchGame() {
@@ -148,11 +108,6 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void setPieces() {
-        // Initialize white pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 2));
-        }
-
 //        pieces.add(new Pawn(WHITE, 0, 3));
 //        pieces.add(new Pawn(WHITE, 1, 3));
 //        pieces.add(new Pawn(WHITE, 2, 3));
@@ -206,6 +161,11 @@ public class GamePanel extends JPanel implements Runnable {
 //        pieces.get(7).connectedPieces.add(pieces.get(5));
 //        pieces.get(7).connectedPieces.add(pieces.get(6));
 
+        // Initialize white pawns
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(WHITE, col, 2));
+        }
+
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
         pieces.add(new Knight(WHITE, 1, 7));
@@ -256,7 +216,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void update() {
         if (promotion) {
-            promoting();
             promotionPanel.setVisible(true);
         }
         else if (!gameOver) {
@@ -433,24 +392,27 @@ public class GamePanel extends JPanel implements Runnable {
         return false;
     }
 
-    private void promoting() {
-        if (mouse.pressed) {
-            for (Piece piece : promotionP) {
-                if (piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
-                    switch (piece.type) {
-                        case KNIGHT -> simPieces.add(new Knight(currentColor, activeP.col, activeP.row));
-                        case BISHOP -> simPieces.add(new Bishop(currentColor, activeP.col, activeP.row));
-                        case ROOK -> simPieces.add(new Rook(currentColor, activeP.col, activeP.row));
-                        case QUEEN -> simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
-                    }
-                    simPieces.remove(activeP.getIndex());
-                    copyPieces(simPieces, pieces);
-                    promotion = false;
-                    changePlayer();
-                    break;
-                }
-            }
+    private void handlePromotion(Type pieceType) {
+        if (pieceType == Type.QUEEN) {
+            simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
+        } else if (pieceType == Type.ROOK) {
+            simPieces.add(new Rook(currentColor, activeP.col, activeP.row));
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Rook.");
+        } else if (pieceType == Type.BISHOP) {
+            simPieces.add(new Bishop(currentColor, activeP.col, activeP.row));
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Bishop.");
+        } else if (pieceType == Type.KNIGHT) {
+            simPieces.add(new Knight(currentColor, activeP.col, activeP.row));
+            chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Knight.");
         }
+
+        simPieces.remove(activeP.getIndex());
+        copyPieces(simPieces, pieces);
+        promotionPanel.setVisible(false);
+        promotion = false;
+        changePlayer();
+        activeP = null;
     }
 
     @Override
