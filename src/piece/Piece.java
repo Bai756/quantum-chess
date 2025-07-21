@@ -24,6 +24,7 @@ public class Piece implements Cloneable {
     public boolean twoMoved;
     public ArrayList<Piece> connectedPieces = new ArrayList<>();
     public Complex amplitude = new Complex(1, 0);
+    public Type promotedTo = null;
 
     public Piece(int color, int col, int row) {
         this.color = color;
