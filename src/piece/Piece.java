@@ -22,8 +22,8 @@ public class Piece implements Cloneable {
     public Piece hittingP;
     public boolean moved;
     public boolean twoMoved;
-    public double probability = 1.0;
     public ArrayList<Piece> connectedPieces = new ArrayList<>();
+    public Complex amplitude = new Complex(1, 0);
 
     public Piece(int color, int col, int row) {
         this.color = color;
@@ -235,6 +235,27 @@ public class Piece implements Cloneable {
             return cloned;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
+        }
+    }
+
+    public void normalizeAmplitude() {
+        double normSquared = 0.0;
+        ArrayList<Piece> all = new ArrayList<>(connectedPieces);
+        all.add(this);
+        for (Piece p : all) {
+            normSquared += p.amplitude.absSquared();
+        }
+        double norm = Math.sqrt(normSquared);
+
+        // Normalize each amplitude
+        if (norm > 0) {
+            for (Piece p : all) {
+                p.amplitude = p.amplitude.divide(norm);
+            }
+        } else {
+            for (Piece p : all) {
+                p.amplitude = Complex.ZERO;
+            }
         }
     }
 }
