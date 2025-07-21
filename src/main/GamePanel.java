@@ -1,15 +1,16 @@
 package main;
 
 import java.awt.AlphaComposite;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import javax.swing.JPanel;
-import javax.swing.JButton;
+import javax.swing.*;
 
 import piece.Bishop;
 import piece.King;
@@ -59,45 +60,99 @@ public class GamePanel extends JPanel implements Runnable {
 
         moveChoicePanel = new JPanel();
         moveChoicePanel.setLayout(null);
-        moveChoicePanel.setBounds(820, 600, 250, 80); // Position it as needed
+        moveChoicePanel.setBounds(820, 600, 100, 80); // Position it as needed
         moveChoicePanel.setVisible(false);
+        moveChoicePanel.setOpaque(false);
+        moveChoicePanel.setBackground(new Color(0, 0, 0, 0)); // Fully transparent
 
         promotionPanel = new JPanel();
         promotionPanel.setLayout(null);
         promotionPanel.setVisible(false);
-        promotionPanel.setBounds(400, 300, 120, 160); // position it near center or wherever fits
+        promotionPanel.setBounds(400, 300, 120, 200); // position it near center or wherever fits
+        promotionPanel.setOpaque(false);
+        promotionPanel.setBackground(new Color(0, 0, 0, 0));
 
-        JButton queenButton = new JButton("Queen");
+        RoundedButton queenButton = new RoundedButton("Queen");
         queenButton.setBounds(0, 0, 120, 40);
+        queenButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        queenButton.setBackground(new Color(0,0,0));
+        queenButton.setForeground(Color.WHITE);
+        queenButton.setFocusPainted(false);
+        queenButton.setBorderPainted(false);
         queenButton.addActionListener(_ -> handlePromotion(Type.QUEEN));
 
-        JButton knightButton = new JButton("Knight");
-        knightButton.setBounds(0, 120, 120, 40);
+        RoundedButton knightButton = new RoundedButton("Knight");
+        knightButton.setBounds(0, 150, 120, 40);
+        knightButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        knightButton.setBackground(new Color(0,0,0));
+        knightButton.setForeground(Color.WHITE);
+        knightButton.setFocusPainted(false);
+        knightButton.setBorderPainted(false);
         knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
-        JButton rookButton = new JButton("Rook");
-        rookButton.setBounds(0, 40, 120, 40);
+        RoundedButton rookButton = new RoundedButton("Rook");
+        rookButton.setBounds(0, 50, 120, 40);
+        rookButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        rookButton.setBackground(new Color(0,0,0));
+        rookButton.setForeground(Color.WHITE);
+        rookButton.setFocusPainted(false);
+        rookButton.setBorderPainted(false);
         rookButton.addActionListener(_ -> handlePromotion(Type.ROOK));
 
-        JButton bishopButton = new JButton("Bishop");
-        bishopButton.setBounds(0, 80, 120, 40);
+        RoundedButton bishopButton = new RoundedButton("Bishop");
+        bishopButton.setBounds(0, 100, 120, 40);
+        bishopButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        bishopButton.setBackground(new Color(0,0,0));
+        bishopButton.setForeground(Color.WHITE);
+        bishopButton.setFocusPainted(false);
+        bishopButton.setBorderPainted(false);
         bishopButton.addActionListener(_ -> handlePromotion(Type.BISHOP));
 
         promotionPanel.add(queenButton);
         promotionPanel.add(knightButton);
         promotionPanel.add(rookButton);
         promotionPanel.add(bishopButton);
-        promotionPanel.setBackground(new Color(210, 165, 125));
+        moveChoicePanel.setOpaque(false);
+        moveChoicePanel.setBackground(new Color(0, 0, 0, 0));
         this.add(promotionPanel);
 
-        JButton regularButton = new JButton("Regular");
+        RoundedButton regularButton = new RoundedButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
-        JButton splitButton = new JButton("Split");
+        regularButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        regularButton.setBackground(new Color(0,0,0));
+        regularButton.setForeground(Color.WHITE);
+        regularButton.setFocusPainted(false);
+        regularButton.setBorderPainted(false);
+        RoundedButton splitButton = new RoundedButton("Split");
         splitButton.setBounds(130, 0, 120, 40);
+        splitButton.setFont(new Font("SansSerif",Font.PLAIN,20));
+        splitButton.setBackground(new Color(0,0,0));
+        splitButton.setForeground(Color.WHITE);
+        splitButton.setFocusPainted(false);
+        splitButton.setBorderPainted(false);
 
         moveChoicePanel.add(regularButton);
         moveChoicePanel.add(splitButton);
         this.add(moveChoicePanel);
+
+        MouseAdapter hoverEffect = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                JButton source = (JButton) e.getSource();
+                source.setBackground(new Color(0,0,0)); // Slightly lighter tone
+                source.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2)); // Pop with a soft outline
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                JButton source = (JButton) e.getSource();
+                source.setBackground(new Color(0,0,0)); // Original color
+                source.setBorder(null); // Return to flat look
+            }
+        };
+
+        regularButton.addMouseListener(hoverEffect);
+        splitButton.addMouseListener(hoverEffect);
 
         regularButton.addActionListener(_ -> handleMove());
         splitButton.addActionListener(_ -> handleSplitMove());
@@ -247,7 +302,7 @@ public class GamePanel extends JPanel implements Runnable {
                     } else if (x > 550) { // If it's on the right
                         moveChoicePanel.setBounds(x - 200, y, 250, 40);
                     } else // If it's too high
-                        moveChoicePanel.setBounds(x, y - 20, 250, 40);
+                        moveChoicePanel.setBounds(x, y + 100, 250, 40);
                     moveChoicePanel.setVisible(true);
                 } else if (!awaitingMoveChoice) {
                     copyPieces(pieces, simPieces);
