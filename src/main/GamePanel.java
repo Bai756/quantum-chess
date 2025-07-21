@@ -271,8 +271,7 @@ public class GamePanel extends JPanel implements Runnable {
     private void update() {
         if (promotion) {
             promotionPanel.setVisible(true);
-        }
-        else if (!gameOver) {
+        } else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
                     for (Piece piece : simPieces) {
@@ -477,11 +476,19 @@ public class GamePanel extends JPanel implements Runnable {
         // Make pieces semi-transparent based on their probability
         AlphaComposite original = (AlphaComposite) g2.getComposite();
         for (Piece piece : simPieces) {
-            float alpha = (float) piece.probability;
-            g2.setComposite(getInstance(AlphaComposite.SRC_OVER, alpha));
-            piece.draw(g2);
+            if (piece.amplitude.absSquared() != 0.0) {
+                int x = piece.x;
+                int y = piece.y;
 
-            piece.draw(g2);
+                float alpha = (float) piece.amplitude.absSquared();
+                g2.setComposite(getInstance(AlphaComposite.SRC_OVER, alpha));
+                g2.drawImage(piece.image, x + 5, y + 5, 90, 90, null);
+
+                g2.setFont(new Font("Arial", Font.PLAIN, 16));
+                g2.setColor(Color.YELLOW);
+                String ampText = String.format("%.2f + %.2fi", piece.amplitude.re(), piece.amplitude.im());
+                g2.drawString(ampText, x + 10, y + 30);
+            }
         }
         g2.setComposite(original);
 
@@ -526,7 +533,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void handleSplitMove() {
         Piece newPiece = SuperPosition.handleSplit(activeP);
-
         newPiece.row = activeP.preRow;
         newPiece.col = activeP.preCol;
 
@@ -541,26 +547,32 @@ public class GamePanel extends JPanel implements Runnable {
         boolean success = false;
         if (activeP.hittingP != null) {
             success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+        } else {
+            if (canPromote()) {
+                promotion = true;
+                return;
+            }
         }
 
         // If capture successful, copy the simulation else go back to original pieces
         if (success) {
             copyPieces(simPieces, pieces);
+            activeP.updatePosition();
+            if (activeP.type == Type.PAWN &&
+                    ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
+                promotion = true;
+                return;
+            }
         } else {
             copyPieces(pieces, simPieces);
+            activeP.updatePosition();
         }
 
-        activeP.updatePosition();
         if (castlingP != null) {
             castlingP.updatePosition();
-
         }
         if (isKingCaptured()) {
             gameOver = true;
-        } else if (canPromote()) {
-            System.out.println("Promoting");
-            promotion = true;
-            return;
         } else if (isDrawByInsufficientMaterial()) {
             stalemate = true;
         } else {
@@ -572,6 +584,7 @@ public class GamePanel extends JPanel implements Runnable {
         moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
     }
+  
     private String generatePromotionNotation(Piece pawn, Type promotedType) {
         char file = (char) ('a' + pawn.col);
         int rank = 8 - pawn.row;
@@ -583,6 +596,7 @@ public class GamePanel extends JPanel implements Runnable {
             default -> "?";
         };
     }
+  
     private String generateMoveNotation(Piece piece) {
         StringBuilder notation = new StringBuilder();
 
@@ -627,5 +641,4 @@ public class GamePanel extends JPanel implements Runnable {
 
         return notation.toString();
     }
-
 }
