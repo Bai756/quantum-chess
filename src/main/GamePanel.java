@@ -45,7 +45,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
+    private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
     private boolean awaitingMoveChoice = false;
+
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -57,6 +59,10 @@ public class GamePanel extends JPanel implements Runnable {
         this.setLayout(null);
         chatPanel.setBounds(800, 400, 300, 400);
         this.add(chatPanel);
+        moveTrackerPanel.setBounds(800, 0, 350, 410); // Top-right corner
+        this.add(moveTrackerPanel);
+        moveTrackerPanel.setBackground(new Color(0,0,0)); // matching theme
+        moveTrackerPanel.setVisible(true);
 
         moveChoicePanel = new JPanel();
         moveChoicePanel.setLayout(null);
@@ -74,38 +80,22 @@ public class GamePanel extends JPanel implements Runnable {
 
         RoundedButton queenButton = new RoundedButton("Queen");
         queenButton.setBounds(0, 0, 120, 40);
-        queenButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        queenButton.setBackground(new Color(0,0,0));
-        queenButton.setForeground(Color.WHITE);
-        queenButton.setFocusPainted(false);
-        queenButton.setBorderPainted(false);
+        buttonFormat(queenButton);
         queenButton.addActionListener(_ -> handlePromotion(Type.QUEEN));
 
         RoundedButton knightButton = new RoundedButton("Knight");
         knightButton.setBounds(0, 150, 120, 40);
-        knightButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        knightButton.setBackground(new Color(0,0,0));
-        knightButton.setForeground(Color.WHITE);
-        knightButton.setFocusPainted(false);
-        knightButton.setBorderPainted(false);
+        buttonFormat(knightButton);
         knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
         RoundedButton rookButton = new RoundedButton("Rook");
         rookButton.setBounds(0, 50, 120, 40);
-        rookButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        rookButton.setBackground(new Color(0,0,0));
-        rookButton.setForeground(Color.WHITE);
-        rookButton.setFocusPainted(false);
-        rookButton.setBorderPainted(false);
+        buttonFormat(rookButton);
         rookButton.addActionListener(_ -> handlePromotion(Type.ROOK));
 
         RoundedButton bishopButton = new RoundedButton("Bishop");
         bishopButton.setBounds(0, 100, 120, 40);
-        bishopButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        bishopButton.setBackground(new Color(0,0,0));
-        bishopButton.setForeground(Color.WHITE);
-        bishopButton.setFocusPainted(false);
-        bishopButton.setBorderPainted(false);
+        buttonFormat(bishopButton);
         bishopButton.addActionListener(_ -> handlePromotion(Type.BISHOP));
 
         promotionPanel.add(queenButton);
@@ -156,6 +146,14 @@ public class GamePanel extends JPanel implements Runnable {
 
         regularButton.addActionListener(_ -> handleMove());
         splitButton.addActionListener(_ -> handleSplitMove());
+    }
+
+    private void buttonFormat(RoundedButton button){
+        button.setFont(new Font("SansSerif",Font.PLAIN,20));
+        button.setBackground(new Color(0,0,0));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
     }
 
     public void launchGame() {
@@ -431,6 +429,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
         this.activeP = null;
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
+        chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
     }
 
@@ -444,6 +443,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void handlePromotion(Type pieceType) {
+        String notation = generatePromotionNotation(activeP, pieceType);
+        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + notation);
         if (pieceType == Type.QUEEN) {
             simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
             chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
@@ -463,6 +464,7 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel.setVisible(false);
         promotion = false;
         changePlayer();
+
         activeP = null;
     }
 
@@ -562,11 +564,68 @@ public class GamePanel extends JPanel implements Runnable {
         } else if (isDrawByInsufficientMaterial()) {
             stalemate = true;
         } else {
+            String moveNotation = generateMoveNotation(activeP); // needa creat this method
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
             changePlayer();
         }
         activeP = null;
         moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
+    }
+    private String generatePromotionNotation(Piece pawn, Type promotedType) {
+        char file = (char) ('a' + pawn.col);
+        int rank = 8 - pawn.row;
+        return file + "" + rank + "=" + switch (promotedType) {
+            case QUEEN -> "Q";
+            case ROOK -> "R";
+            case BISHOP -> "B";
+            case KNIGHT -> "N";
+            default -> "?";
+        };
+    }
+    private String generateMoveNotation(Piece piece) {
+        StringBuilder notation = new StringBuilder();
+
+
+        String pieceChar = switch (piece.type) {
+            case Type.KNIGHT -> "N";
+            case Type.BISHOP -> "B";
+            case Type.ROOK   -> "R";
+            case Type.QUEEN  -> "Q";
+            case Type.KING   -> "K";
+            default          -> ""; // Pawn
+        };
+
+
+        char file = (char) ('a' + piece.col);
+        int rank = 8 - piece.row;
+
+        boolean isCapture = piece.hittingP != null;
+
+
+        if (piece.type == Type.PAWN && isCapture) {
+            char originFile = (char) ('a' + piece.preCol);
+            notation.append(originFile).append("x");
+        } else {
+            notation.append(pieceChar);
+            if (isCapture) notation.append("x");
+        }
+
+        notation.append(file).append(rank);
+
+
+        if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7)) {
+            notation.append("=Q"); // Assuming promotion always to Queen
+        }
+
+
+        int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
+        boolean kingGone = !isKingPresent(opponentColor);
+        if (kingGone) {
+            notation.append("#");
+        }
+
+        return notation.toString();
     }
 
 }
