@@ -100,4 +100,37 @@ public class SuperPosition {
             return false;
         }
     }
+
+    public static void amplifyPiece(Piece target) {
+        ArrayList<Piece> connectedGroup = new ArrayList<>(target.connectedPieces);
+        connectedGroup.add(target);
+
+        double targetProb = target.amplitude.absSquared();
+        double totalProb = 0;
+        for (Piece p : connectedGroup) {
+            totalProb += p.amplitude.absSquared();
+        }
+
+        if (connectedGroup.size() == 1 || targetProb >= 0.9) {
+            return;
+        }
+
+        double boostFactor = 1.3; // Boost by 30%
+        Complex newAmp = target.amplitude.multiply(Math.sqrt(boostFactor));
+
+        double remainingProb = totalProb - (targetProb * boostFactor);
+        if (remainingProb < 0) remainingProb = 0;
+
+        // Distribute remaining probability to other pieces
+        for (Piece p : connectedGroup) {
+            if (p != target) {
+                double ratio = p.amplitude.absSquared() / (totalProb - targetProb);
+                p.amplitude = p.amplitude.multiply(Math.sqrt(ratio * remainingProb / (totalProb - targetProb)));
+            }
+        }
+
+        target.amplitude = newAmp;
+
+        target.normalizeAmplitude();
+    }
 }

@@ -42,13 +42,18 @@ public class GamePanel extends JPanel implements Runnable {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
+    private ArrayList<Piece> piecesBeforePromotion = new ArrayList<>();
+    private ArrayList<Piece> simPiecesBeforePromotion = new ArrayList<>();
 
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
+    private final RoundedButton amplifyButton = new RoundedButton("Amplify");
     private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
     private boolean awaitingMoveChoice = false;
     private boolean justSplit = false;
     private char captureOutcome = ' ';
+    private final boolean debugAmp = true;
+    private final boolean debugProb = true;
 
 
     public GamePanel() {
@@ -68,7 +73,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         moveChoicePanel = new JPanel();
         moveChoicePanel.setLayout(null);
-        moveChoicePanel.setBounds(820, 600, 100, 80); // Position it as needed
+        moveChoicePanel.setBounds(820, 600, 150, 120); // Position it as needed
         moveChoicePanel.setVisible(false);
         moveChoicePanel.setOpaque(false);
         moveChoicePanel.setBackground(new Color(0, 0, 0, 0)); // Fully transparent
@@ -76,7 +81,7 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel = new JPanel();
         promotionPanel.setLayout(null);
         promotionPanel.setVisible(false);
-        promotionPanel.setBounds(400, 300, 120, 200); // position it near center or wherever fits
+        promotionPanel.setBounds(400, 300, 120, 250); // Position it near the center
         promotionPanel.setOpaque(false);
         promotionPanel.setBackground(new Color(0, 0, 0, 0));
 
@@ -84,11 +89,6 @@ public class GamePanel extends JPanel implements Runnable {
         queenButton.setBounds(0, 0, 120, 40);
         buttonFormat(queenButton);
         queenButton.addActionListener(_ -> handlePromotion(Type.QUEEN));
-
-        RoundedButton knightButton = new RoundedButton("Knight");
-        knightButton.setBounds(0, 150, 120, 40);
-        buttonFormat(knightButton);
-        knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
         RoundedButton rookButton = new RoundedButton("Rook");
         rookButton.setBounds(0, 50, 120, 40);
@@ -100,32 +100,78 @@ public class GamePanel extends JPanel implements Runnable {
         buttonFormat(bishopButton);
         bishopButton.addActionListener(_ -> handlePromotion(Type.BISHOP));
 
+        RoundedButton knightButton = new RoundedButton("Knight");
+        knightButton.setBounds(0, 150, 120, 40);
+        buttonFormat(knightButton);
+        knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
+
+        RoundedButton cancelPromotionButton = new RoundedButton("Cancel");
+        cancelPromotionButton.setBounds(0, 200, 120, 40);
+        buttonFormat(cancelPromotionButton);
+        cancelPromotionButton.addActionListener(_ -> {
+            pieces.clear();
+            simPieces.clear();
+            pieces.addAll(piecesBeforePromotion);
+            simPieces.addAll(simPiecesBeforePromotion);
+
+            activeP.resetPosition();
+
+            if (activeP != null) {
+                activeP = null;
+            }
+
+            promotion = false;
+            promotionPanel.setVisible(false);
+        });
+
         promotionPanel.add(queenButton);
-        promotionPanel.add(knightButton);
         promotionPanel.add(rookButton);
         promotionPanel.add(bishopButton);
+        promotionPanel.add(knightButton);
+        promotionPanel.add(cancelPromotionButton);
         moveChoicePanel.setOpaque(false);
         moveChoicePanel.setBackground(new Color(0, 0, 0, 0));
         this.add(promotionPanel);
 
         RoundedButton regularButton = new RoundedButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
-        regularButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        regularButton.setBackground(new Color(0,0,0));
-        regularButton.setForeground(Color.WHITE);
-        regularButton.setFocusPainted(false);
-        regularButton.setBorderPainted(false);
+        buttonFormat(regularButton);
+
         RoundedButton splitButton = new RoundedButton("Split");
         splitButton.setBounds(130, 0, 120, 40);
-        splitButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        splitButton.setBackground(new Color(0,0,0));
-        splitButton.setForeground(Color.WHITE);
-        splitButton.setFocusPainted(false);
-        splitButton.setBorderPainted(false);
+        buttonFormat(splitButton);
+
+        RoundedButton cancelMoveButton = new RoundedButton("Cancel");
+        cancelMoveButton.setBounds(65, 50, 120, 40);
+        buttonFormat(cancelMoveButton);
+        cancelMoveButton.addActionListener(_ -> {
+            if (activeP != null) {
+                activeP.resetPosition();
+                activeP = null;
+            }
+            if (castlingP != null) {
+                castlingP.resetPosition();
+                castlingP = null;
+            }
+            moveChoicePanel.setVisible(false);
+            awaitingMoveChoice = false;
+        });
 
         moveChoicePanel.add(regularButton);
         moveChoicePanel.add(splitButton);
+        moveChoicePanel.add(cancelMoveButton);
         this.add(moveChoicePanel);
+
+        amplifyButton.setBounds(30, 300, 120, 40);
+        buttonFormat(amplifyButton);
+        amplifyButton.setVisible(false);
+        amplifyButton.addActionListener(_ -> {
+            if (activeP != null) {
+                SuperPosition.amplifyPiece(activeP);
+                amplifyButton.setVisible(false);
+            }
+        });
+        this.add(amplifyButton);
 
         MouseAdapter hoverEffect = new MouseAdapter() {
             @Override
@@ -273,12 +319,16 @@ public class GamePanel extends JPanel implements Runnable {
     private void update() {
         if (promotion) {
             promotionPanel.setVisible(true);
+            amplifyButton.setVisible(false);
         } else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
                     for (Piece piece : simPieces) {
                         if (piece.color == currentColor && piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
                             activeP = piece;
+//                            if (piece.amplitude.absSquared() < 1.0) {
+//                                amplifyButton.setVisible(true);
+//                            }
                             break;
                         }
                     }
@@ -289,19 +339,40 @@ public class GamePanel extends JPanel implements Runnable {
 
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
-                    if (activeP.hittingP != null || (activeP.type == Type.PAWN && (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) { // If it's a capture or promotion
+                    if (activeP.hittingP != null ||
+                            (activeP.type == Type.PAWN && (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) { // Capture or promotion
+
+                        piecesBeforePromotion.clear();
+                        simPiecesBeforePromotion.clear();
+                        for (Piece p : pieces) {
+                            piecesBeforePromotion.add(p.clone());
+                        }
+                        for (Piece p : simPieces) {
+                            simPiecesBeforePromotion.add(p.clone());
+                        }
                         handleMove();
                         return;
                     }
+
                     awaitingMoveChoice = true;
                     int x = activeP.x;
                     int y = activeP.y;
-                    if (x <= 550 && y >= 40) { // Normal move
-                        moveChoicePanel.setBounds(x, y, 250, 40);
+
+                    if (x <= 550 && x >= 10 && y >= 50 && y <= 710) { // Normal move
+                        moveChoicePanel.setBounds(x, y, 250, 90);
                     } else if (x > 550) { // If it's on the right
-                        moveChoicePanel.setBounds(x - 200, y, 250, 40);
-                    } else // If it's too high
-                        moveChoicePanel.setBounds(x, y + 100, 250, 40);
+                        int dx = x - 540;
+                        moveChoicePanel.setBounds(x - dx, y, 250, 90);
+                    } else if (x < 10) { // If it's on the left
+                        int dx = 10 - x;
+                        moveChoicePanel.setBounds(x + dx, y, 250, 90);
+                    } else if (y < 60) { // If it's too high
+                        int dy = 60 - y;
+                        moveChoicePanel.setBounds(x, y + dy, 250, 90);
+                    } else { // If it's too low
+                        int dy = y - 700;
+                        moveChoicePanel.setBounds(x, y - dy, 250, 90);
+                    }
                     moveChoicePanel.setVisible(true);
                 } else if (!awaitingMoveChoice) {
                     copyPieces(pieces, simPieces);
@@ -429,6 +500,7 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
         this.activeP = null;
+        amplifyButton.setVisible(false);
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
@@ -492,10 +564,17 @@ public class GamePanel extends JPanel implements Runnable {
                 g2.setComposite(getInstance(AlphaComposite.SRC_OVER, alpha));
                 g2.drawImage(piece.image, x + 5, y + 5, 90, 90, null);
 
-                g2.setFont(new Font("Arial", Font.PLAIN, 16));
+                g2.setFont(new Font("TimesNewRoman", Font.PLAIN, 14));
                 g2.setColor(Color.YELLOW);
-                String ampText = String.format("%.2f + %.2fi", piece.amplitude.re(), piece.amplitude.im());
-                g2.drawString(ampText, x + 10, y + 30);
+                g2.setComposite(original);
+                if (debugAmp) {
+                    String ampText = String.format("%.2f + %.2fi", piece.amplitude.re(), piece.amplitude.im());
+                    g2.drawString(ampText, x + 10, y + 30);
+                }
+                if (debugProb) {
+                    String probText = String.format("%.2f", piece.amplitude.absSquared());
+                    g2.drawString(probText, x + 35, y + 90);
+                }
             }
         }
         g2.setComposite(original);
