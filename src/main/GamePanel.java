@@ -217,7 +217,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Initialize white pawns
         for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 2));
+            pieces.add(new Pawn(WHITE, col, 6));
         }
 
         // Initialize white major pieces
@@ -231,9 +231,9 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(BLACK, col, 1));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(BLACK, col, 1));
+        }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
         pieces.add(new Knight(BLACK, 1, 0));
@@ -287,7 +287,7 @@ public class GamePanel extends JPanel implements Runnable {
 
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
-                    if (activeP.hittingP != null || (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)) { // If it's a capture or promotion
+                    if (activeP.hittingP != null || (activeP.type == Type.PAWN && (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) { // If it's a capture or promotion
                         handleMove();
                         return;
                     }
@@ -475,7 +475,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Make pieces semi-transparent based on their probability
         AlphaComposite original = (AlphaComposite) g2.getComposite();
-        for (Piece piece : simPieces) {
+        ArrayList<Piece> piecesCopy = new ArrayList<>(simPieces);
+        for (Piece piece : piecesCopy) {
             if (piece.amplitude.absSquared() != 0.0) {
                 int x = piece.x;
                 int y = piece.y;
