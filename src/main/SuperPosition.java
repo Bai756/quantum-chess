@@ -5,7 +5,7 @@ import piece.Complex;
 import java.util.ArrayList;
 
 public class SuperPosition {
-    public static boolean resolveCapture(Piece attacker, Piece defender) {
+    public static char resolveCapture(Piece attacker, Piece defender) {
         double aProb = attacker.amplitude.absSquared();
         double dProb = defender.amplitude.absSquared();
 
@@ -17,25 +17,25 @@ public class SuperPosition {
             removePiece(defender);
             collapseTo(attacker);
             System.out.println("Both a and d");
-            return true;
+            return 'b';
 
         } else if (aHere) {
             collapseTo(attacker);
             removePiece(defender);
             System.out.println("Only a");
-            return true;
+            return 'a';
 
         } else if (dHere) {
             collapseTo(defender);
             removePiece(attacker);
             System.out.println("Only d");
-            return false;
+            return 'd';
 
         } else {
             removePiece(attacker);
             removePiece(defender);
             System.out.println("Neither a nor d");
-            return false;
+            return 'n';
         }
     }
 
