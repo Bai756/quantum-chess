@@ -42,8 +42,6 @@ public class GamePanel extends JPanel implements Runnable {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
-    private ArrayList<Piece> piecesBeforePromotion = new ArrayList<>();
-    private ArrayList<Piece> simPiecesBeforePromotion = new ArrayList<>();
 
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
@@ -105,30 +103,10 @@ public class GamePanel extends JPanel implements Runnable {
         buttonFormat(knightButton);
         knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
-        RoundedButton cancelPromotionButton = new RoundedButton("Cancel");
-        cancelPromotionButton.setBounds(0, 200, 120, 40);
-        buttonFormat(cancelPromotionButton);
-        cancelPromotionButton.addActionListener(_ -> {
-            pieces.clear();
-            simPieces.clear();
-            pieces.addAll(piecesBeforePromotion);
-            simPieces.addAll(simPiecesBeforePromotion);
-
-            activeP.resetPosition();
-
-            if (activeP != null) {
-                activeP = null;
-            }
-
-            promotion = false;
-            promotionPanel.setVisible(false);
-        });
-
         promotionPanel.add(queenButton);
         promotionPanel.add(rookButton);
         promotionPanel.add(bishopButton);
         promotionPanel.add(knightButton);
-        promotionPanel.add(cancelPromotionButton);
         moveChoicePanel.setOpaque(false);
         moveChoicePanel.setBackground(new Color(0, 0, 0, 0));
         this.add(promotionPanel);
@@ -342,14 +320,6 @@ public class GamePanel extends JPanel implements Runnable {
                     if (activeP.hittingP != null ||
                             (activeP.type == Type.PAWN && (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) { // Capture or promotion
 
-                        piecesBeforePromotion.clear();
-                        simPiecesBeforePromotion.clear();
-                        for (Piece p : pieces) {
-                            piecesBeforePromotion.add(p.clone());
-                        }
-                        for (Piece p : simPieces) {
-                            simPiecesBeforePromotion.add(p.clone());
-                        }
                         handleMove();
                         return;
                     }
