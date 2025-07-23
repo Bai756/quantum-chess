@@ -13,13 +13,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import javax.swing.*;
 
-import piece.Bishop;
-import piece.King;
-import piece.Knight;
-import piece.Pawn;
-import piece.Piece;
-import piece.Queen;
-import piece.Rook;
+import piece.*;
 
 public class GamePanel extends JPanel implements Runnable {
     public static final int WIDTH = 1100;
@@ -42,6 +36,7 @@ public class GamePanel extends JPanel implements Runnable {
     boolean gameOver;
     boolean stalemate;
     boolean hasAmplified = false;
+    String amplifiedLocation = null;
     
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
@@ -138,26 +133,26 @@ public class GamePanel extends JPanel implements Runnable {
             awaitingMoveChoice = false;
         });
 
+        moveChoicePanel.add(regularButton);
+        moveChoicePanel.add(splitButton);
+        moveChoicePanel.add(cancelMoveButton);
+        this.add(moveChoicePanel);
+
         amplifyButton = new RoundedButton("Amplify");
-        amplifyButton.setBounds(0, 50, 120, 40);
+        amplifyButton.setBounds(0, 50, 90, 40);
         buttonFormat(amplifyButton);
         amplifyButton.addActionListener(_ -> {
             if (activeP != null) {
                 SuperPosition.amplifyPiece(activeP);
                 amplifyButton.setVisible(false);
-                activeP.resetPosition();
-                activeP = null;
+                amplifiedLocation = String.format("%c%d", 'a' + activeP.col, 8 - activeP.row);
+                awaitingMoveChoice = false;
+                hasAmplified = true;
+                chatPanel.displaySystemMessage("Amplified at " + amplifiedLocation);
             }
-            moveChoicePanel.setVisible(false);
-            awaitingMoveChoice = false;
-            hasAmplified = true;
         });
-
-        moveChoicePanel.add(regularButton);
-        moveChoicePanel.add(splitButton);
-        moveChoicePanel.add(cancelMoveButton);
-        moveChoicePanel.add(amplifyButton);
-        this.add(moveChoicePanel);
+        this.add(amplifyButton);
+        amplifyButton.setVisible(false);
 
         this.hoverEffect = new MouseAdapter() {
             @Override
@@ -191,63 +186,65 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void setPieces() {
-//        pieces.add(new Pawn(WHITE, 0, 3));
-//        pieces.add(new Pawn(WHITE, 1, 3));
-//        pieces.add(new Pawn(WHITE, 2, 3));
-//        pieces.add(new Pawn(WHITE, 3, 3));
-//
-//        pieces.get(0).probability = 0.25;
-//        pieces.get(1).probability = 0.25;
-//        pieces.get(2).probability = 0.25;
-//        pieces.get(3).probability = 0.25;
-//
-//        pieces.get(0).connectedPieces.add(pieces.get(1));
-//        pieces.get(0).connectedPieces.add(pieces.get(2));
-//        pieces.get(0).connectedPieces.add(pieces.get(3));
-//
-//        pieces.get(1).connectedPieces.add(pieces.get(0));
-//        pieces.get(1).connectedPieces.add(pieces.get(2));
-//        pieces.get(1).connectedPieces.add(pieces.get(3));
-//
-//        pieces.get(2).connectedPieces.add(pieces.get(0));
-//        pieces.get(2).connectedPieces.add(pieces.get(1));
-//        pieces.get(2).connectedPieces.add(pieces.get(3));
-//
-//        pieces.get(3).connectedPieces.add(pieces.get(0));
-//        pieces.get(3).connectedPieces.add(pieces.get(1));
-//        pieces.get(3).connectedPieces.add(pieces.get(2));
-//
-//        // Initialize black pawns in row 2
-//        pieces.add(new Pawn(BLACK, 0, 2));
-//        pieces.add(new Pawn(BLACK, 1, 2));
-//        pieces.add(new Pawn(BLACK, 2, 2));
-//        pieces.add(new Pawn(BLACK, 3, 2));
-//
-//        pieces.get(4).probability = 0.25;
-//        pieces.get(5).probability = 0.25;
-//        pieces.get(6).probability = 0.25;
-//        pieces.get(7).probability = 0.25;
-//
-//        pieces.get(4).connectedPieces.add(pieces.get(5));
-//        pieces.get(4).connectedPieces.add(pieces.get(6));
-//        pieces.get(4).connectedPieces.add(pieces.get(7));
-//
-//        pieces.get(5).connectedPieces.add(pieces.get(4));
-//        pieces.get(5).connectedPieces.add(pieces.get(6));
-//        pieces.get(5).connectedPieces.add(pieces.get(7));
-//
-//        pieces.get(6).connectedPieces.add(pieces.get(4));
-//        pieces.get(6).connectedPieces.add(pieces.get(5));
-//        pieces.get(6).connectedPieces.add(pieces.get(7));
-//
-//        pieces.get(7).connectedPieces.add(pieces.get(4));
-//        pieces.get(7).connectedPieces.add(pieces.get(5));
-//        pieces.get(7).connectedPieces.add(pieces.get(6));
+        pieces.add(new Pawn(WHITE, 0, 1));
+        pieces.add(new Pawn(WHITE, 1, 1));
+        pieces.add(new Pawn(WHITE, 2, 1));
+        pieces.add(new Pawn(WHITE, 3, 1));
+
+        pieces.get(0).amplitude = Complex.ONE;
+        pieces.get(1).amplitude = Complex.ONE;
+        pieces.get(2).amplitude = Complex.ONE;
+        pieces.get(3).amplitude = Complex.ONE;
+
+        pieces.get(0).connectedPieces.add(pieces.get(1));
+        pieces.get(0).connectedPieces.add(pieces.get(2));
+        pieces.get(0).connectedPieces.add(pieces.get(3));
+
+        pieces.get(1).connectedPieces.add(pieces.get(0));
+        pieces.get(1).connectedPieces.add(pieces.get(2));
+        pieces.get(1).connectedPieces.add(pieces.get(3));
+
+        pieces.get(2).connectedPieces.add(pieces.get(0));
+        pieces.get(2).connectedPieces.add(pieces.get(1));
+        pieces.get(2).connectedPieces.add(pieces.get(3));
+
+        pieces.get(3).connectedPieces.add(pieces.get(0));
+        pieces.get(3).connectedPieces.add(pieces.get(1));
+        pieces.get(3).connectedPieces.add(pieces.get(2));
+        pieces.get(0).normalizeAmplitude();
+
+        // Initialize black pawns in row 2
+        pieces.add(new Pawn(BLACK, 4, 6));
+        pieces.add(new Pawn(BLACK, 5, 6));
+        pieces.add(new Pawn(BLACK, 6, 6));
+        pieces.add(new Pawn(BLACK, 7, 6));
+
+        pieces.get(4).amplitude = Complex.ONE;
+        pieces.get(5).amplitude = Complex.ONE;
+        pieces.get(6).amplitude = Complex.ONE;
+        pieces.get(7).amplitude = Complex.ONE;
+
+        pieces.get(4).connectedPieces.add(pieces.get(5));
+        pieces.get(4).connectedPieces.add(pieces.get(6));
+        pieces.get(4).connectedPieces.add(pieces.get(7));
+
+        pieces.get(5).connectedPieces.add(pieces.get(4));
+        pieces.get(5).connectedPieces.add(pieces.get(6));
+        pieces.get(5).connectedPieces.add(pieces.get(7));
+
+        pieces.get(6).connectedPieces.add(pieces.get(4));
+        pieces.get(6).connectedPieces.add(pieces.get(5));
+        pieces.get(6).connectedPieces.add(pieces.get(7));
+
+        pieces.get(7).connectedPieces.add(pieces.get(4));
+        pieces.get(7).connectedPieces.add(pieces.get(5));
+        pieces.get(7).connectedPieces.add(pieces.get(6));
+        pieces.get(4).normalizeAmplitude();
 
         // Initialize white pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 6));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(WHITE, col, 6));
+//        }
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
@@ -260,9 +257,9 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(BLACK, col, 1));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(BLACK, col, 1));
+//        }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
 //        pieces.add(new Knight(BLACK, 1, 0));
@@ -303,14 +300,27 @@ public class GamePanel extends JPanel implements Runnable {
         } else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
+                    boolean found = false;
                     for (Piece piece : simPieces) {
                         if (piece.color == currentColor && piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
                             activeP = piece;
+                            boolean eligible = piece.connectedPieces.size() >= 2 && !hasAmplified;
+                            amplifyButton.setVisible(eligible);
+                            if (eligible) {
+                                amplifyButton.setBounds(piece.x - 10, piece.y + 30, 120, 40);
+                                moveChoicePanel.setVisible(false);
+                            }
+                            found = true;
                             break;
                         }
                     }
+                    if (!found) {
+                        amplifyButton.setVisible(false);
+                    }
                 } else if (!awaitingMoveChoice) {
                     simulate();
+                } else {
+                    amplifyButton.setVisible(false);
                 }
             }
 
@@ -324,9 +334,7 @@ public class GamePanel extends JPanel implements Runnable {
                     }
 
                     awaitingMoveChoice = true;
-
-                    boolean hasPieces = (activeP.connectedPieces.size() < 2);
-                    amplifyButton.setVisible(!hasPieces && !hasAmplified);
+                    amplifyButton.setVisible(false);
 
                     int x = activeP.x;
                     int y = activeP.y;
@@ -349,9 +357,20 @@ public class GamePanel extends JPanel implements Runnable {
                     moveChoicePanel.setVisible(true);
 
                 } else if (!awaitingMoveChoice) {
-                    copyPieces(pieces, simPieces);
-                    activeP.resetPosition();
-                    activeP = null;
+                    Point mousePoint = new Point(mouse.x, mouse.y);
+                    Rectangle ampBounds = amplifyButton.getBounds();
+                    boolean overAmplify = ampBounds.contains(mousePoint);
+
+                    Rectangle pieceSquare = new Rectangle(activeP.x, activeP.y, 100, 100);
+                    boolean overPieceSquare = pieceSquare.contains(mousePoint);
+
+                    if (activeP != null) activeP.resetPosition();
+
+                    if (!overAmplify && !overPieceSquare) {
+                        copyPieces(pieces, simPieces);
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                    }
                 }
             }
         }
@@ -467,13 +486,26 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void changePlayer() {
+        if (isKingCaptured()) {
+            gameOver = true;
+        } else if (isDrawByInsufficientMaterial()) {
+            stalemate = true;
+        }
+
         currentColor = (currentColor == WHITE) ? BLACK : WHITE;
         for (Piece piece : simPieces) {
             if (piece.color == currentColor) {
                 piece.twoMoved = false;
             }
         }
-        this.activeP = null;
+
+        activeP = null;
+        moveChoicePanel.setVisible(false);
+        amplifyButton.setVisible(false);
+        awaitingMoveChoice = false;
+        hasAmplified = false;
+        justSplit = false;
+
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
@@ -490,6 +522,13 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void handlePromotion(Type pieceType) {
         String notation = generatePromotionNotation(activeP, pieceType);
+
+        if (hasAmplified && amplifiedLocation != null) {
+            notation = amplifiedLocation + "@" + notation;
+            amplifiedLocation = null;
+            hasAmplified = false;
+        }
+
         if (!justSplit) {
             moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + notation);
         }
@@ -513,10 +552,8 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel.setVisible(false);
         promotion = false;
         captureOutcome = ' ';
-        changePlayer();
 
-        activeP = null;
-        justSplit = false;
+        changePlayer();
     }
 
     @Override
@@ -606,6 +643,10 @@ public class GamePanel extends JPanel implements Runnable {
             captureOutcome = outcome;
         }
 
+        if (hasAmplified) {
+            moveNotation = amplifiedLocation + "@" + moveNotation;
+        }
+
         String splitNotation = "|" + moveNotation + "|";
         moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + splitNotation);
 
@@ -656,36 +697,28 @@ public class GamePanel extends JPanel implements Runnable {
         if (castlingP != null) {
             castlingP.updatePosition();
         }
-        if (isKingCaptured()) {
-            gameOver = true;
-        } else if (isDrawByInsufficientMaterial()) {
-            stalemate = true;
-        } else {
-            if (!justSplit) {
-                String moveNotation;
-                boolean isCastling = false;
-                if (activeP.type == Type.KING && Math.abs(activeP.col - kingPreCol) == 2) {
-                    moveNotation = (activeP.col == 6) ? "O-O" : "O-O-O";
-                    isCastling = true;
-                } else {
-                    moveNotation = generateMoveNotation(activeP);
-                }
-                if (activeP.type != Type.ROOK) {
-                    if (activeP.hittingP != null && !isCastling) {
-                        moveNotation += captureResult;
-                    }
-                    if (hasAmplified) {
-                        moveNotation = "@" + moveNotation;
-                    }
-                    moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+
+        if (!justSplit) {
+            String moveNotation;
+            boolean isCastling = false;
+            if (activeP.type == Type.KING && Math.abs(activeP.col - kingPreCol) == 2) {
+                moveNotation = (activeP.col == 6) ? "O-O" : "O-O-O";
+                isCastling = true;
+            } else {
+                moveNotation = generateMoveNotation(activeP);
+            }
+            if (activeP.type != Type.ROOK) {
+                if (activeP.hittingP != null && !isCastling) {
+                    moveNotation += captureResult;
                 }
             }
-            changePlayer();
+            if (hasAmplified) {
+                moveNotation = amplifiedLocation + "@" + moveNotation;
+            }
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
         }
-        activeP = null;
-        moveChoicePanel.setVisible(false);
-        awaitingMoveChoice = false;
-        hasAmplified = false;
+
+        changePlayer();
     }
 
     private String generatePromotionNotation(Piece pawn, Type promotedType) {
@@ -710,6 +743,11 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (pawn.hittingP != null && captureOutcome != ' ') {
             notation.append(captureOutcome);
+        }
+
+        int opponentColor = (pawn.color == WHITE) ? BLACK : WHITE;
+        if (!isKingPresent(opponentColor)) {
+            notation.append("#");
         }
 
         return notation.toString();
