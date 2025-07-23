@@ -10,12 +10,14 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import javax.swing.*;
 
 import piece.*;
 
-public class GamePanel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
     final int FPS = 60;
@@ -46,8 +48,10 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean awaitingMoveChoice = false;
     private boolean justSplit = false;
     private char captureOutcome = ' ';
-    private final boolean debugAmp = false;
-    private final boolean debugProb = true;
+    private boolean debugAmp = false;
+    private boolean debugProb = false;
+    private boolean tabHeld = false;
+    private Timer tabHoldTimer;
 
 
     public GamePanel() {
@@ -169,7 +173,41 @@ public class GamePanel extends JPanel implements Runnable {
                 source.setBorder(null); // Return to flat look
             }
         };
+
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
+        this.setFocusable(true);
+        this.requestFocusInWindow();
+        addKeyListener(this);
     }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_TAB && !tabHeld) {
+            tabHeld = true;
+            tabHoldTimer = new Timer(100, evt -> {
+//                debugAmp = true;
+                debugProb = true;
+            });
+            tabHoldTimer.start();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_TAB) {
+            tabHeld = false;
+            if (tabHoldTimer != null) {
+                tabHoldTimer.stop();
+                tabHoldTimer = null;
+            }
+            debugAmp = false;
+            debugProb = false;
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
 
     private void buttonFormat(RoundedButton button){
         button.setFont(new Font("SansSerif",Font.PLAIN,20));
@@ -186,88 +224,88 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void setPieces() {
-        pieces.add(new Pawn(WHITE, 0, 1));
-        pieces.add(new Pawn(WHITE, 1, 1));
-        pieces.add(new Pawn(WHITE, 2, 1));
-        pieces.add(new Pawn(WHITE, 3, 1));
-
-        pieces.get(0).amplitude = Complex.ONE;
-        pieces.get(1).amplitude = Complex.ONE;
-        pieces.get(2).amplitude = Complex.ONE;
-        pieces.get(3).amplitude = Complex.ONE;
-
-        pieces.get(0).connectedPieces.add(pieces.get(1));
-        pieces.get(0).connectedPieces.add(pieces.get(2));
-        pieces.get(0).connectedPieces.add(pieces.get(3));
-
-        pieces.get(1).connectedPieces.add(pieces.get(0));
-        pieces.get(1).connectedPieces.add(pieces.get(2));
-        pieces.get(1).connectedPieces.add(pieces.get(3));
-
-        pieces.get(2).connectedPieces.add(pieces.get(0));
-        pieces.get(2).connectedPieces.add(pieces.get(1));
-        pieces.get(2).connectedPieces.add(pieces.get(3));
-
-        pieces.get(3).connectedPieces.add(pieces.get(0));
-        pieces.get(3).connectedPieces.add(pieces.get(1));
-        pieces.get(3).connectedPieces.add(pieces.get(2));
-        pieces.get(0).normalizeAmplitude();
-
-        // Initialize black pawns in row 2
-        pieces.add(new Pawn(BLACK, 4, 6));
-        pieces.add(new Pawn(BLACK, 5, 6));
-        pieces.add(new Pawn(BLACK, 6, 6));
-        pieces.add(new Pawn(BLACK, 7, 6));
-
-        pieces.get(4).amplitude = Complex.ONE;
-        pieces.get(5).amplitude = Complex.ONE;
-        pieces.get(6).amplitude = Complex.ONE;
-        pieces.get(7).amplitude = Complex.ONE;
-
-        pieces.get(4).connectedPieces.add(pieces.get(5));
-        pieces.get(4).connectedPieces.add(pieces.get(6));
-        pieces.get(4).connectedPieces.add(pieces.get(7));
-
-        pieces.get(5).connectedPieces.add(pieces.get(4));
-        pieces.get(5).connectedPieces.add(pieces.get(6));
-        pieces.get(5).connectedPieces.add(pieces.get(7));
-
-        pieces.get(6).connectedPieces.add(pieces.get(4));
-        pieces.get(6).connectedPieces.add(pieces.get(5));
-        pieces.get(6).connectedPieces.add(pieces.get(7));
-
-        pieces.get(7).connectedPieces.add(pieces.get(4));
-        pieces.get(7).connectedPieces.add(pieces.get(5));
-        pieces.get(7).connectedPieces.add(pieces.get(6));
-        pieces.get(4).normalizeAmplitude();
+//        pieces.add(new Pawn(WHITE, 0, 1));
+//        pieces.add(new Pawn(WHITE, 1, 1));
+//        pieces.add(new Pawn(WHITE, 2, 1));
+//        pieces.add(new Pawn(WHITE, 3, 1));
+//
+//        pieces.get(0).amplitude = Complex.ONE;
+//        pieces.get(1).amplitude = Complex.ONE;
+//        pieces.get(2).amplitude = Complex.ONE;
+//        pieces.get(3).amplitude = Complex.ONE;
+//
+//        pieces.get(0).connectedPieces.add(pieces.get(1));
+//        pieces.get(0).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(1).connectedPieces.add(pieces.get(0));
+//        pieces.get(1).connectedPieces.add(pieces.get(2));
+//        pieces.get(1).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(2).connectedPieces.add(pieces.get(0));
+//        pieces.get(2).connectedPieces.add(pieces.get(1));
+//        pieces.get(2).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(3).connectedPieces.add(pieces.get(0));
+//        pieces.get(3).connectedPieces.add(pieces.get(1));
+//        pieces.get(3).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).normalizeAmplitude();
+//
+//        // Initialize black pawns in row 2
+//        pieces.add(new Pawn(BLACK, 4, 6));
+//        pieces.add(new Pawn(BLACK, 5, 6));
+//        pieces.add(new Pawn(BLACK, 6, 6));
+//        pieces.add(new Pawn(BLACK, 7, 6));
+//
+//        pieces.get(4).amplitude = Complex.ONE;
+//        pieces.get(5).amplitude = Complex.ONE;
+//        pieces.get(6).amplitude = Complex.ONE;
+//        pieces.get(7).amplitude = Complex.ONE;
+//
+//        pieces.get(4).connectedPieces.add(pieces.get(5));
+//        pieces.get(4).connectedPieces.add(pieces.get(6));
+//        pieces.get(4).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(5).connectedPieces.add(pieces.get(4));
+//        pieces.get(5).connectedPieces.add(pieces.get(6));
+//        pieces.get(5).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(6).connectedPieces.add(pieces.get(4));
+//        pieces.get(6).connectedPieces.add(pieces.get(5));
+//        pieces.get(6).connectedPieces.add(pieces.get(7));
+//
+//        pieces.get(7).connectedPieces.add(pieces.get(4));
+//        pieces.get(7).connectedPieces.add(pieces.get(5));
+//        pieces.get(7).connectedPieces.add(pieces.get(6));
+//        pieces.get(4).normalizeAmplitude();
 
         // Initialize white pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(WHITE, col, 6));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(WHITE, col, 6));
+        }
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
-//        pieces.add(new Knight(WHITE, 1, 7));
-//        pieces.add(new Bishop(WHITE, 2, 7));
-//        pieces.add(new Queen(WHITE, 3, 7));
+        pieces.add(new Knight(WHITE, 1, 7));
+        pieces.add(new Bishop(WHITE, 2, 7));
+        pieces.add(new Queen(WHITE, 3, 7));
         pieces.add(new King(WHITE, 4, 7));
-//        pieces.add(new Bishop(WHITE, 5, 7));
-//        pieces.add(new Knight(WHITE, 6, 7));
+        pieces.add(new Bishop(WHITE, 5, 7));
+        pieces.add(new Knight(WHITE, 6, 7));
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(BLACK, col, 1));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(BLACK, col, 1));
+        }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
-//        pieces.add(new Knight(BLACK, 1, 0));
-//        pieces.add(new Bishop(BLACK, 2, 0));
-//        pieces.add(new Queen(BLACK, 3, 0));
+        pieces.add(new Knight(BLACK, 1, 0));
+        pieces.add(new Bishop(BLACK, 2, 0));
+        pieces.add(new Queen(BLACK, 3, 0));
         pieces.add(new King(BLACK, 4, 0));
-//        pieces.add(new Bishop(BLACK, 5, 0));
-//        pieces.add(new Knight(BLACK, 6, 0));
+        pieces.add(new Bishop(BLACK, 5, 0));
+        pieces.add(new Knight(BLACK, 6, 0));
         pieces.add(new Rook(BLACK, 7, 0));
     }
 
