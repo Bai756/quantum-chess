@@ -2,6 +2,7 @@ package piece;
 
 public record Complex(double re, double im) {
     public static final Complex ZERO = new Complex(0, 0);
+    public static final Complex ONE = new Complex(1, 0);
 
     public double absSquared() {
         return re * re + im * im;
@@ -9,6 +10,10 @@ public record Complex(double re, double im) {
 
     public Complex add(Complex other) {
         return new Complex(re + other.re, im + other.im);
+    }
+
+    public Complex subtract(Complex other) {
+        return new Complex(re - other.re, im - other.im);
     }
 
     public Complex multiply(double scalar) {

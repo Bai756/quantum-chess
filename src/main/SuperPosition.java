@@ -102,34 +102,27 @@ public class SuperPosition {
     }
 
     public static void amplifyPiece(Piece target) {
+        // What amplification does is it takes the target piece and all its connected pieces,
+        // phase shifts the target piece (makes it negative) then
+        // it inverts their amplitudes around the mean amplitude of the group.
+
         ArrayList<Piece> connectedGroup = new ArrayList<>(target.connectedPieces);
         connectedGroup.add(target);
 
-        double targetProb = target.amplitude.absSquared();
-        double totalProb = 0;
+        target.amplitude = target.amplitude.multiply(-1.0);
+
+        Complex meanAmp = Complex.ZERO;
         for (Piece p : connectedGroup) {
-            totalProb += p.amplitude.absSquared();
+            meanAmp = meanAmp.add(p.amplitude);
         }
+        meanAmp = meanAmp.divide(connectedGroup.size());
 
-        if (connectedGroup.size() == 1 || targetProb >= 0.9) {
-            return;
-        }
-
-        double boostFactor = 1.3; // Boost by 30%
-        Complex newAmp = target.amplitude.multiply(Math.sqrt(boostFactor));
-
-        double remainingProb = totalProb - (targetProb * boostFactor);
-        if (remainingProb < 0) remainingProb = 0;
-
-        // Distribute remaining probability to other pieces
         for (Piece p : connectedGroup) {
-            if (p != target) {
-                double ratio = p.amplitude.absSquared() / (totalProb - targetProb);
-                p.amplitude = p.amplitude.multiply(Math.sqrt(ratio * remainingProb / (totalProb - targetProb)));
+            p.amplitude = meanAmp.multiply(2).subtract(p.amplitude);
+            if (p.amplitude.absSquared() < 0.01) {
+                removePiece(p);
             }
         }
-
-        target.amplitude = newAmp;
 
         target.normalizeAmplitude();
     }

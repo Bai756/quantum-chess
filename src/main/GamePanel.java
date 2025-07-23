@@ -1,6 +1,7 @@
 package main;
 
 import java.awt.AlphaComposite;
+import static java.awt.AlphaComposite.getInstance;
 import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -19,8 +20,6 @@ import piece.Pawn;
 import piece.Piece;
 import piece.Queen;
 import piece.Rook;
-
-import static java.awt.AlphaComposite.getInstance;
 
 public class GamePanel extends JPanel implements Runnable {
     public static final int WIDTH = 1100;
@@ -42,11 +41,13 @@ public class GamePanel extends JPanel implements Runnable {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
+    boolean hasAmplified = false;
     
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
-    private final RoundedButton amplifyButton = new RoundedButton("Amplify");
     private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
+    private final MouseAdapter hoverEffect;
+    private final RoundedButton amplifyButton;
     private boolean awaitingMoveChoice = false;
     private boolean justSplit = false;
     private char captureOutcome = ' ';
@@ -114,13 +115,15 @@ public class GamePanel extends JPanel implements Runnable {
         RoundedButton regularButton = new RoundedButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
         buttonFormat(regularButton);
+        regularButton.addActionListener(_ -> handleMove());
 
         RoundedButton splitButton = new RoundedButton("Split");
         splitButton.setBounds(130, 0, 120, 40);
         buttonFormat(splitButton);
+        splitButton.addActionListener(_ -> handleSplitMove());
 
         RoundedButton cancelMoveButton = new RoundedButton("Cancel");
-        cancelMoveButton.setBounds(65, 50, 120, 40);
+        cancelMoveButton.setBounds(130, 50, 120, 40);
         buttonFormat(cancelMoveButton);
         cancelMoveButton.addActionListener(_ -> {
             if (activeP != null) {
@@ -135,23 +138,28 @@ public class GamePanel extends JPanel implements Runnable {
             awaitingMoveChoice = false;
         });
 
-        moveChoicePanel.add(regularButton);
-        moveChoicePanel.add(splitButton);
-        moveChoicePanel.add(cancelMoveButton);
-        this.add(moveChoicePanel);
-
-        amplifyButton.setBounds(30, 300, 120, 40);
+        amplifyButton = new RoundedButton("Amplify");
+        amplifyButton.setBounds(0, 50, 120, 40);
         buttonFormat(amplifyButton);
-        amplifyButton.setVisible(false);
         amplifyButton.addActionListener(_ -> {
             if (activeP != null) {
                 SuperPosition.amplifyPiece(activeP);
                 amplifyButton.setVisible(false);
+                activeP.resetPosition();
+                activeP = null;
             }
+            moveChoicePanel.setVisible(false);
+            awaitingMoveChoice = false;
+            hasAmplified = true;
         });
-        this.add(amplifyButton);
 
-        MouseAdapter hoverEffect = new MouseAdapter() {
+        moveChoicePanel.add(regularButton);
+        moveChoicePanel.add(splitButton);
+        moveChoicePanel.add(cancelMoveButton);
+        moveChoicePanel.add(amplifyButton);
+        this.add(moveChoicePanel);
+
+        this.hoverEffect = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 JButton source = (JButton) e.getSource();
@@ -166,12 +174,6 @@ public class GamePanel extends JPanel implements Runnable {
                 source.setBorder(null); // Return to flat look
             }
         };
-
-        regularButton.addMouseListener(hoverEffect);
-        splitButton.addMouseListener(hoverEffect);
-
-        regularButton.addActionListener(_ -> handleMove());
-        splitButton.addActionListener(_ -> handleSplitMove());
     }
 
     private void buttonFormat(RoundedButton button){
@@ -180,6 +182,7 @@ public class GamePanel extends JPanel implements Runnable {
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
+        button.addMouseListener(this.hoverEffect);
     }
 
     public void launchGame() {
@@ -248,12 +251,12 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
-        pieces.add(new Knight(WHITE, 1, 7));
-        pieces.add(new Bishop(WHITE, 2, 7));
-        pieces.add(new Queen(WHITE, 3, 7));
+//        pieces.add(new Knight(WHITE, 1, 7));
+//        pieces.add(new Bishop(WHITE, 2, 7));
+//        pieces.add(new Queen(WHITE, 3, 7));
         pieces.add(new King(WHITE, 4, 7));
-        pieces.add(new Bishop(WHITE, 5, 7));
-        pieces.add(new Knight(WHITE, 6, 7));
+//        pieces.add(new Bishop(WHITE, 5, 7));
+//        pieces.add(new Knight(WHITE, 6, 7));
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
@@ -262,12 +265,12 @@ public class GamePanel extends JPanel implements Runnable {
         }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
-        pieces.add(new Knight(BLACK, 1, 0));
-        pieces.add(new Bishop(BLACK, 2, 0));
-        pieces.add(new Queen(BLACK, 3, 0));
+//        pieces.add(new Knight(BLACK, 1, 0));
+//        pieces.add(new Bishop(BLACK, 2, 0));
+//        pieces.add(new Queen(BLACK, 3, 0));
         pieces.add(new King(BLACK, 4, 0));
-        pieces.add(new Bishop(BLACK, 5, 0));
-        pieces.add(new Knight(BLACK, 6, 0));
+//        pieces.add(new Bishop(BLACK, 5, 0));
+//        pieces.add(new Knight(BLACK, 6, 0));
         pieces.add(new Rook(BLACK, 7, 0));
     }
 
@@ -297,16 +300,12 @@ public class GamePanel extends JPanel implements Runnable {
     private void update() {
         if (promotion) {
             promotionPanel.setVisible(true);
-            amplifyButton.setVisible(false);
         } else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
                     for (Piece piece : simPieces) {
                         if (piece.color == currentColor && piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
                             activeP = piece;
-//                            if (piece.amplitude.absSquared() < 1.0) {
-//                                amplifyButton.setVisible(true);
-//                            }
                             break;
                         }
                     }
@@ -325,6 +324,10 @@ public class GamePanel extends JPanel implements Runnable {
                     }
 
                     awaitingMoveChoice = true;
+
+                    boolean hasPieces = (activeP.connectedPieces.size() < 2);
+                    amplifyButton.setVisible(!hasPieces && !hasAmplified);
+
                     int x = activeP.x;
                     int y = activeP.y;
 
@@ -344,6 +347,7 @@ public class GamePanel extends JPanel implements Runnable {
                         moveChoicePanel.setBounds(x, y - dy, 250, 90);
                     }
                     moveChoicePanel.setVisible(true);
+
                 } else if (!awaitingMoveChoice) {
                     copyPieces(pieces, simPieces);
                     activeP.resetPosition();
@@ -470,7 +474,6 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
         this.activeP = null;
-        amplifyButton.setVisible(false);
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
@@ -671,6 +674,9 @@ public class GamePanel extends JPanel implements Runnable {
                     if (activeP.hittingP != null && !isCastling) {
                         moveNotation += captureResult;
                     }
+                    if (hasAmplified) {
+                        moveNotation = "@" + moveNotation;
+                    }
                     moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
                 }
             }
@@ -679,6 +685,7 @@ public class GamePanel extends JPanel implements Runnable {
         activeP = null;
         moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
+        hasAmplified = false;
     }
 
     private String generatePromotionNotation(Piece pawn, Type promotedType) {
