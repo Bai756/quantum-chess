@@ -26,7 +26,7 @@ public class GamePanel extends JPanel implements Runnable {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
     final int FPS = 60;
-    ChatMain chatPanel = new ChatMain();
+    public ChatMain chatPanel = new ChatMain();
     Thread gameThread;
     Board board = new Board();
     Mouse mouse = new Mouse();
@@ -42,14 +42,20 @@ public class GamePanel extends JPanel implements Runnable {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
+    boolean isAITurnPending;
 
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
-    private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
+    public final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
     private boolean awaitingMoveChoice = false;
-
+    public GameMode gameMode = GameMode.HUMAN_VS_AI;
+    private ChessAI chessAI;
+    public static boolean lastMoveWasHuman = true;
 
     public GamePanel() {
+        if (gameMode == GameMode.HUMAN_VS_AI) {
+            chessAI = new ChessAI(GamePanel.this);
+        }
         this.setPreferredSize(new Dimension(WIDTH, HEIGHT));
         this.setBackground(Color.black);
         this.addMouseMotionListener(this.mouse);
@@ -245,7 +251,7 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Rook(BLACK, 7, 0));
     }
 
-    private void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
+    public void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
         target.clear();
         target.addAll(source);
     }
@@ -269,6 +275,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+//        System.out.println("Update running, color: " + currentColor + ", aiTurnPending: " + isAITurnPending);
         if (promotion) {
             promotionPanel.setVisible(true);
         } else if (!gameOver) {
@@ -336,7 +343,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private boolean isKingCaptured() {
+    public static boolean isKingCaptured() {
         boolean whiteKing = false;
         boolean blackKing = false;
         for (Piece piece : simPieces) {
@@ -348,7 +355,7 @@ public class GamePanel extends JPanel implements Runnable {
         return !(whiteKing && blackKing);
     }
 
-    private boolean isDrawByInsufficientMaterial() {
+    public boolean isDrawByInsufficientMaterial() {
         int whiteBishops = 0, blackBishops = 0;
         int whiteKnights = 0, blackKnights = 0;
         int whiteOthers = 0, blackOthers = 0;
@@ -419,17 +426,26 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private void changePlayer() {
+    public void changePlayer() {
         currentColor = (currentColor == WHITE) ? BLACK : WHITE;
         for (Piece piece : simPieces) {
             if (piece.color == currentColor) {
                 piece.twoMoved = false;
             }
         }
-        this.activeP = null;
+
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
+
+        if (gameMode == GameMode.HUMAN_VS_AI && isAITurnPending && lastMoveWasHuman == true) {
+            chessAI.performAIMove();
+            isAITurnPending = false;
+        }
+        else {
+            lastMoveWasHuman = true;
+        }
+        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
     }
 
     private boolean canPromote() {
@@ -475,7 +491,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Make pieces semi-transparent based on their probability
         AlphaComposite original = (AlphaComposite) g2.getComposite();
-        for (Piece piece : simPieces) {
+        ArrayList<Piece> piecesToDraw = new ArrayList<>(simPieces);
+        for (Piece piece : piecesToDraw) {
             if (piece.amplitude.absSquared() != 0.0) {
                 int x = piece.x;
                 int y = piece.y;
@@ -509,9 +526,9 @@ public class GamePanel extends JPanel implements Runnable {
         if (gameOver) {
             String s;
             if (isKingPresent(WHITE)) {
-                s = "White Wins";
+                s = "White cooked";
             } else if (isKingPresent(BLACK)) {
-                s = "Black Wins";
+                s = "Black cooked";
             } else s = "Game Over";
 
             g2.setFont(new Font("Ariel", Font.PLAIN, 90));
@@ -561,6 +578,9 @@ public class GamePanel extends JPanel implements Runnable {
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
+                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+                    isAITurnPending = true;
+                }
                 return;
             }
         } else {
@@ -576,15 +596,20 @@ public class GamePanel extends JPanel implements Runnable {
         } else if (isDrawByInsufficientMaterial()) {
             stalemate = true;
         } else {
-            String moveNotation = generateMoveNotation(activeP); // needa creat this method
+            String moveNotation = generateMoveNotation(activeP);
             moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
-            changePlayer();
+            copyPieces(pieces, simPieces);
         }
+
         activeP = null;
         moveChoicePanel.setVisible(false);
         awaitingMoveChoice = false;
+        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+            isAITurnPending = true;
+        }
+        changePlayer();
     }
-  
+
     private String generatePromotionNotation(Piece pawn, Type promotedType) {
         char file = (char) ('a' + pawn.col);
         int rank = 8 - pawn.row;
@@ -596,8 +621,8 @@ public class GamePanel extends JPanel implements Runnable {
             default -> "?";
         };
     }
-  
-    private String generateMoveNotation(Piece piece) {
+
+    public String generateMoveNotation(Piece piece) {
         StringBuilder notation = new StringBuilder();
 
 
