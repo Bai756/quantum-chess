@@ -42,7 +42,7 @@ public class GamePanel extends JPanel implements Runnable {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
-
+    
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
     private final RoundedButton amplifyButton = new RoundedButton("Amplify");
@@ -50,7 +50,7 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean awaitingMoveChoice = false;
     private boolean justSplit = false;
     private char captureOutcome = ' ';
-    private final boolean debugAmp = true;
+    private final boolean debugAmp = false;
     private final boolean debugProb = true;
 
 
@@ -243,17 +243,17 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Initialize white pawns
         for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 2));
+            pieces.add(new Pawn(WHITE, col, 6));
         }
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
-//        pieces.add(new Knight(WHITE, 1, 7));
-//        pieces.add(new Bishop(WHITE, 2, 7));
-//        pieces.add(new Queen(WHITE, 3, 7));
+        pieces.add(new Knight(WHITE, 1, 7));
+        pieces.add(new Bishop(WHITE, 2, 7));
+        pieces.add(new Queen(WHITE, 3, 7));
         pieces.add(new King(WHITE, 4, 7));
-//        pieces.add(new Bishop(WHITE, 5, 7));
-//        pieces.add(new Knight(WHITE, 6, 7));
+        pieces.add(new Bishop(WHITE, 5, 7));
+        pieces.add(new Knight(WHITE, 6, 7));
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
@@ -262,12 +262,12 @@ public class GamePanel extends JPanel implements Runnable {
         }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
-//        pieces.add(new Knight(BLACK, 1, 0));
-//        pieces.add(new Bishop(BLACK, 2, 0));
-//        pieces.add(new Queen(BLACK, 3, 0));
+        pieces.add(new Knight(BLACK, 1, 0));
+        pieces.add(new Bishop(BLACK, 2, 0));
+        pieces.add(new Queen(BLACK, 3, 0));
         pieces.add(new King(BLACK, 4, 0));
-//        pieces.add(new Bishop(BLACK, 5, 0));
-//        pieces.add(new Knight(BLACK, 6, 0));
+        pieces.add(new Bishop(BLACK, 5, 0));
+        pieces.add(new Knight(BLACK, 6, 0));
         pieces.add(new Rook(BLACK, 7, 0));
     }
 
@@ -318,7 +318,7 @@ public class GamePanel extends JPanel implements Runnable {
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
                     if (activeP.hittingP != null ||
-                            (activeP.type == Type.PAWN && (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) { // Capture or promotion
+                            (activeP.type == Type.PAWN && ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)))) { // Capture or promotion
 
                         handleMove();
                         return;
