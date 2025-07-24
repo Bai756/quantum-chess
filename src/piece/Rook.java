@@ -1,6 +1,7 @@
 package piece;
 
 import main.Type;
+import java.util.List;
 
 public class Rook extends Piece {
     public Rook(int color, int col, int row) {
@@ -14,7 +15,7 @@ public class Rook extends Piece {
 
     }
 
-    public boolean canMove(int targetCol, int targetRow) {
-        return this.isWithinBoard(targetCol, targetRow) && !this.isSameSquare(targetCol, targetRow) && (targetCol == this.preCol || targetRow == this.preRow) && this.isValidSquare(targetCol, targetRow) && !this.isPieceOnStraightLine(targetCol, targetRow);
+    public boolean canMove(int targetCol, int targetRow, List<Piece> board) {
+        return this.isWithinBoard(targetCol, targetRow) && !this.isSameSquare(targetCol, targetRow) && (targetCol == this.preCol || targetRow == this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnStraightLine(targetCol, targetRow);
     }
 }

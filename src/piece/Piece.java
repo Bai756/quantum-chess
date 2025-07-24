@@ -8,6 +8,7 @@ import java.util.Objects;
 import javax.imageio.ImageIO;
 import main.GamePanel;
 import main.Type;
+import java.util.List;
 
 public class Piece implements Cloneable {
     public Type type;
@@ -92,7 +93,7 @@ public class Piece implements Cloneable {
         this.y = this.getY(this.row);
     }
 
-    public boolean canMove(int targetCol, int targetRow) {
+    public boolean canMove(int targetCol, int targetRow, List<Piece> board) {
         return false;
     }
 
@@ -104,18 +105,17 @@ public class Piece implements Cloneable {
         return targetCol == this.preCol && targetRow == this.preRow;
     }
 
-    public Piece getHittingP(int targetCol, int targetRow) {
-        for(Piece piece : GamePanel.simPieces) {
+    public Piece getHittingP(int targetCol, int targetRow, List<Piece> board) {
+        for (Piece piece : board) {
             if (piece.col == targetCol && piece.row == targetRow && piece != this) {
                 return piece;
             }
         }
-
         return null;
     }
 
-    public boolean isValidSquare(int targetCol, int targetRow) {
-        this.hittingP = this.getHittingP(targetCol, targetRow);
+    public boolean isValidSquare(int targetCol, int targetRow, List<Piece> board) {
+        this.hittingP = this.getHittingP(targetCol, targetRow, board);
         if (this.hittingP == null) {
             return true;
         } else if (this.hittingP.color != this.color) {

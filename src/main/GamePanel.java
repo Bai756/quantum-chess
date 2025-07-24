@@ -441,7 +441,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         activeP.col = activeP.getCol(activeP.x);
         activeP.row = activeP.getRow(activeP.y);
 
-        if (activeP.canMove(activeP.col, activeP.row)) {
+        if (activeP.canMove(activeP.col, activeP.row, simPieces)) {
             canMove = true;
             if (activeP.hittingP != null) {
                 simPieces.remove(activeP.hittingP.getIndex());
@@ -694,7 +694,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         newPiece.col = activeP.preCol;
         newPiece.updatePosition();
 
-        String moveNotation = generateNotation(
+        String moveNotation;
+        moveNotation = generateNotation(
                 activeP,
                 null,
                 true,
@@ -717,11 +718,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             newRook.updatePosition();
         }
 
-        awaitingMoveChoice = false;
-        handleMove();
-        justSplit = false;
-    }
-
     private void handleMove() {
         char captureResult = ' ';
 
@@ -739,10 +735,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
-
-                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
-                    isAITurnPending = true;
-                }
 
                 captureOutcome = captureResult;
                 return;
@@ -768,9 +760,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
         activeP.updatePosition();
 
-        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
-            isAITurnPending = true;
-        }
+        isAITurnPending = false;
 
         changePlayer();
     }
