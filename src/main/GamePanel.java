@@ -17,6 +17,25 @@ import javax.swing.*;
 
 import piece.*;
 
+class BackgroundPanel extends JPanel {
+    private Image backgroundImage;
+
+    public BackgroundPanel(String imagePath) {
+        setLayout(new BorderLayout(10, 10));
+        setOpaque(false);
+        backgroundImage = new ImageIcon(imagePath).getImage();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+        }
+    }
+}
+
+
 public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
@@ -59,6 +78,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
 
     public GamePanel() {
+        showGameModeDialog();
         if (gameMode == GameMode.HUMAN_VS_AI) {
             chessAI = new ChessAI(GamePanel.this);
         }
@@ -192,7 +212,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_TAB && !tabHeld) {
             tabHeld = true;
-            tabHoldTimer = new Timer(100, _ -> {
+            tabHoldTimer = new Timer(100, evt -> {
 //                debugAmp = true;
                 debugProb = true;
             });
@@ -579,6 +599,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handlePromotion(Type pieceType) {
+
         String notation;
         notation = generateNotation(
                 activeP,
@@ -707,7 +728,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 captureOutcome
         );
 
-        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        String splitNotation = "|" + moveNotation + "|";
+        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + splitNotation);
 
         if (castlingP != null) {
             Piece newRook = SuperPosition.handleSplit(castlingP);
@@ -767,6 +789,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     public void handleAIMove(Piece activeP) {
         char captureResult = ' ';
+        int kingPreCol = (activeP.type == Type.KING) ? activeP.preCol : -1;
 
         if (activeP.hittingP != null) {
             captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
@@ -779,6 +802,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         if (captureResult == 'b' || captureResult == 'a') {
             copyPieces(simPieces, pieces);
+            activeP.updatePosition();
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
@@ -806,93 +830,253 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (castlingP != null) {
             castlingP.updatePosition();
         }
-        activeP.updatePosition();
+
+        if (!justSplit) {
+            String moveNotation;
+            boolean isCastling = false;
+            if (activeP.type == Type.KING && Math.abs(activeP.col - kingPreCol) == 2) {
+                moveNotation = (activeP.col == 6) ? "O-O" : "O-O-O";
+                isCastling = true;
+            } else {
+                moveNotation = generateMoveNotation(activeP);
+            }
+            if (activeP.type != Type.ROOK) {
+                if (activeP.hittingP != null && !isCastling) {
+                    moveNotation += captureResult;
+                }
+            }
+            if (hasAmplified) {
+                moveNotation = amplifiedLocation + "@" + moveNotation;
+            }
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        }
 
         isAITurnPending = false;
 
         changePlayer();
     }
 
-    public String generateNotation(Piece piece, Type promotedType, boolean isSplit, boolean hasAmplified, String amplifiedLocation, char captureOutcome) {
+    private String generatePromotionNotation(Piece pawn, Type promotedType) {
         StringBuilder notation = new StringBuilder();
 
-        // Amplification prefix
-        if (hasAmplified && amplifiedLocation != null) {
-            notation.append(amplifiedLocation).append("@");
+        if (pawn.hittingP != null) {
+            char originFile = (char) ('a' + pawn.preCol);
+            notation.append(originFile).append("x");
         }
 
-        // Split move
-        if (isSplit) {
-            notation.append("|");
+        char file = (char) ('a' + pawn.col);
+        int rank = 8 - pawn.row;
+        notation.append(file).append(rank);
+
+        notation.append("=").append(switch (promotedType) {
+            case QUEEN -> "Q";
+            case ROOK -> "R";
+            case BISHOP -> "B";
+            case KNIGHT -> "N";
+            default -> "?";
+        });
+
+        if (pawn.hittingP != null && captureOutcome != ' ') {
+            notation.append(captureOutcome);
         }
 
-        // Castling
-        if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
-            if (piece.col == 6) notation.append("O-O");
-            else if (piece.col == 2) notation.append("O-O-O");
-        } else if (promotedType != null) {
-            // Promotion
-            if (piece.hittingP != null) {
-                char originFile = (char) ('a' + piece.preCol);
-                notation.append(originFile).append("x");
-            }
-            char file = (char) ('a' + piece.col);
-            int rank = 8 - piece.row;
-            notation.append(file).append(rank);
-            notation.append("=").append(switch (promotedType) {
-                case QUEEN -> "Q";
-                case ROOK -> "R";
-                case BISHOP -> "B";
-                case KNIGHT -> "N";
-                default -> "?";
-            });
-            if (piece.hittingP != null && captureOutcome != ' ') {
-                notation.append(captureOutcome);
-            }
-            int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
-            if (!isKingPresent(opponentColor)) {
-                notation.append("#");
-            }
-        } else {
-            // Regular move
-            String pieceChar = switch (piece.type) {
-                case Type.KNIGHT -> "N";
-                case Type.BISHOP -> "B";
-                case Type.ROOK -> "R";
-                case Type.QUEEN -> "Q";
-                case Type.KING -> "K";
-                default -> "";
-            };
-            char file = (char) ('a' + piece.col);
-            int rank = 8 - piece.row;
-            boolean isCapture = piece.hittingP != null;
-            if (piece.type == Type.PAWN && isCapture) {
-                char originFile = (char) ('a' + piece.preCol);
-                notation.append(originFile).append("x");
-            } else {
-                notation.append(pieceChar);
-                if (isCapture) notation.append("x");
-            }
-            notation.append(file).append(rank);
-            if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7) && piece.hittingP == null) {
-                notation.append("n");
-            }
-            if (isCapture && captureOutcome != ' ') {
-                notation.append(captureOutcome);
-            }
-            int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
-            if (!isKingPresent(opponentColor)) {
-                notation.append("#");
-            }
-        }
-
-        // Split move suffix
-        if (isSplit) {
-            notation.append("|");
+        int opponentColor = (pawn.color == WHITE) ? BLACK : WHITE;
+        if (!isKingPresent(opponentColor)) {
+            notation.append("#");
         }
 
         return notation.toString();
     }
+  
+    public String generateMoveNotation(Piece piece) {
+        if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
+            if (piece.col == 6) return "O-O";
+            if (piece.col == 2) return "O-O-O";
+        }
+
+        StringBuilder notation = new StringBuilder();
+
+        String pieceChar = switch (piece.type) {
+            case Type.KNIGHT -> "N";
+            case Type.BISHOP -> "B";
+            case Type.ROOK   -> "R";
+            case Type.QUEEN  -> "Q";
+            case Type.KING   -> "K";
+            default          -> ""; // Pawn
+        };
+
+        char file = (char) ('a' + piece.col);
+        int rank = 8 - piece.row;
+
+        boolean isCapture = piece.hittingP != null;
+
+        if (piece.type == Type.PAWN && isCapture) {
+            char originFile = (char) ('a' + piece.preCol);
+            notation.append(originFile).append("x");
+        } else {
+            notation.append(pieceChar);
+            if (isCapture) notation.append("x");
+        }
+
+        notation.append(file).append(rank);
+
+        if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7) && piece.hittingP == null) {
+            notation.append("n"); // Default promotion is failed for split
+        }
+
+        int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
+        boolean kingGone = !isKingPresent(opponentColor);
+        if (kingGone) {
+            notation.append("#");
+        }
+
+        return notation.toString();
+    }
+
+    public void showGameModeDialog() {
+        BackgroundPanel panel = new BackgroundPanel("C:\\Users\\anmol\\IdeaProjects\\quantum-chess\\src\\resources\\piece\\quantumbg.png");
+        panel.setPreferredSize(new Dimension(800, 800));
+
+        JLabel titleLabel = new JLabel("Quantum Chess");
+        titleLabel.setFont(new Font("Book Antiqua", Font.BOLD, 80));
+        titleLabel.setBackground(Color.LIGHT_GRAY);
+        titleLabel.setForeground(new Color(240,230,203));
+        //titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+        buttonPanel.setOpaque(false);
+
+        RoundedButton humanBtn = new RoundedButton("Play Against Human");
+        RoundedButton aiBtn = new RoundedButton("Play Against AI");
+        humanBtn.setPreferredSize(new Dimension(400, 80));
+        aiBtn.setPreferredSize(new Dimension(400, 80));
+
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        humanBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        aiBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        buttonPanel.add(Box.createVerticalStrut(250));
+        buttonPanel.add(titleLabel);
+        buttonPanel.add(Box.createVerticalStrut(60));
+        buttonPanel.add(humanBtn);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(aiBtn);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        RoundedButton rulesBtn = new RoundedButton("Rules");
+        rulesBtn.setPreferredSize(new Dimension(400, 80));
+        rulesBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        RoundedButton creditsBtn = new RoundedButton("Credits");
+        creditsBtn.setPreferredSize(new Dimension(400, 80));
+        creditsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        //buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(rulesBtn);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(creditsBtn);
+
+
+        //panel.add(titleLabel, BorderLayout.NORTH);
+        panel.add(buttonPanel, BorderLayout.CENTER);
+
+        JDialog dialog = new JDialog((Frame) null, "Chess Setup", true);
+        dialog.setUndecorated(true);
+        dialog.setContentPane(panel); // 🌟 panel draws the PNG now!
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+
+        creditsBtn.addActionListener(_ -> {
+            JPanel creditsPanel = new JPanel();
+            creditsPanel.setLayout(new BoxLayout(creditsPanel, BoxLayout.Y_AXIS));
+            creditsPanel.setBackground(new Color(40, 40, 40));
+            creditsPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+
+            JLabel title = new JLabel("Game Credits");
+            title.setFont(new Font("Book Antiqua", Font.BOLD, 24));
+            title.setForeground(new Color(240,230,203));
+            title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JTextArea creditsText = new JTextArea(
+                    """
+                    • Created by Anmol & En\n
+                    • Special thanks to Yash and Tilas for their amazing ideas and playtesting!
+                    """
+            );
+            creditsText.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            creditsText.setForeground(new Color(240,230,203));
+            creditsText.setBackground(new Color(50, 50, 50));
+            creditsText.setEditable(false);
+            creditsText.setLineWrap(true);
+            creditsText.setWrapStyleWord(true);
+            creditsText.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            creditsPanel.add(title);
+            creditsPanel.add(Box.createVerticalStrut(10));
+            creditsPanel.add(creditsText);
+
+            JDialog creditsDialog = new JDialog((Frame) null, "Credits", true);
+            creditsDialog.getContentPane().add(creditsPanel);
+            creditsDialog.setSize(300, 200);
+            creditsDialog.setLocationRelativeTo(null);
+            creditsDialog.setVisible(true);
+        });
+
+        // Attach listeners BEFORE showing
+        rulesBtn.addActionListener(_ -> {
+            JPanel rulesPanel = new JPanel();
+            rulesPanel.setLayout(new BoxLayout(rulesPanel, BoxLayout.Y_AXIS));
+            rulesPanel.setBackground(new Color(40, 40, 40));
+            rulesPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+
+            JLabel title = new JLabel("Chess Rules");
+            title.setFont(new Font("Book Antiqua", Font.BOLD, 24));
+            title.setForeground(new Color(240,230,203));
+            title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JTextArea rulesText = new JTextArea(
+                    """
+                    • Standard chess rules apply, check and checkmate are not used.
+                    • After you move, you have the option to split your piece.
+                    • Splitting a piece creates an identical piece with half the amplitude of the original.
+                    • Once a single piece has been split at least twice, you have the option to amplify any of the split pieces.
+                    • Amplifying a piece increases its amplitude, making it more likely to be selected in future moves.
+                    • Game ends when a king is captured or a draw is declared.
+                    • Don't lose.
+                   
+                    """
+            );
+            rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            rulesText.setForeground(new Color(240,230,203));
+            rulesText.setBackground(new Color(50, 50, 50));
+            rulesText.setEditable(false);
+            rulesText.setLineWrap(true);
+            rulesText.setWrapStyleWord(true);
+            rulesText.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            rulesPanel.add(title);
+            rulesPanel.add(Box.createVerticalStrut(10));
+            rulesPanel.add(rulesText);
+
+            JDialog rulesDialog = new JDialog((Frame) null, "Chess Rules", true);
+            rulesDialog.setUndecorated(false); // Keeps system window border
+            rulesDialog.getContentPane().add(rulesPanel);
+            rulesDialog.setSize(500, 300);
+            rulesDialog.setLocationRelativeTo(null);
+            rulesDialog.setVisible(true);
+        });
+        humanBtn.addActionListener(_ -> {
+            gameMode = GameMode.HUMAN_VS_HUMAN;
+            dialog.dispose();
+        });
+
+        aiBtn.addActionListener(_ -> {
+            gameMode = GameMode.HUMAN_VS_AI;
+            dialog.dispose();
+        });
+
+        dialog.setVisible(true);
+    }
+  
     private void handleMove() {
         char captureResult = ' ';
 
