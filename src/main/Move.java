@@ -3,13 +3,15 @@ package main;
 import piece.Piece;
 
 public class Move {
-    public Piece piece;
-    public int targetCol;
-    public int targetRow;
+    public final Piece piece;
+    public final int fromCol, fromRow;
+    public final int targetCol, targetRow;
 
-    public Move(Piece piece, int targetCol, int targetRow) {
+    public Move(Piece piece, int toC, int toR) {
         this.piece = piece;
-        this.targetCol = targetCol;
-        this.targetRow = targetRow;
+        this.fromCol = piece.col;
+        this.fromRow = piece.row;
+        this.targetCol = toC;
+        this.targetRow = toR;
     }
 }
