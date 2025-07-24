@@ -108,6 +108,7 @@ public class ChessAI {
         }
 
         Piece mover = bestMove.piece;
+
         Piece captured = null;
         mover.hittingP = null;
         for (Piece p : pieces) {
@@ -120,6 +121,15 @@ public class ChessAI {
         char captureOutcome = ' ';
         if (captured != null) {
             captureOutcome = SuperPosition.resolveCapture(mover, captured);
+        } else {
+            if (Math.random() < 0.4) {
+                System.out.println("AI chose split move");
+                mover.col = bestMove.targetCol;
+                mover.row = bestMove.targetRow;
+                mover.hittingP = null;
+                gamePanel.handleAISplitMove(mover);
+                return;
+            }
         }
 
         mover.col = bestMove.targetCol;
@@ -181,7 +191,7 @@ public class ChessAI {
         int bestScore = isMaximizing ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         for (Move m : moves) {
-            List<Piece> next = simulateMove(board, m);
+            List<Piece> next = simulateMove(board, m, false);
             MinimaxResult child = minimax(next, depth - 1, alpha, beta, !isMaximizing);
             int score = child.score;
 
@@ -282,32 +292,50 @@ public class ChessAI {
         return c;
     }
 
-    private List<Piece> simulateMove(List<Piece> board, Move move) {
+    private List<Piece> simulateMove(List<Piece> board, Move move, boolean isSplit) {
         List<Piece> newBoard = cloneBoard(board);
-        Piece mover = findPiece(newBoard, move.piece);
+        Piece movingPiece = findPiece(newBoard, move.piece);
+
+        if (isSplit) {
+            Piece newPiece = SuperPosition.handleSplit(movingPiece);
+
+            newPiece.col = move.targetCol;
+            newPiece.row = move.targetRow;
+
+            newPiece.updatePosition();
+
+            newBoard.add(newPiece);
+        } else {
+            // Regular move
+            movingPiece.col = move.targetCol;
+            movingPiece.row = move.targetRow;
+            movingPiece.updatePosition();
+        }
+
         // Capture
-        newBoard.removeIf(p -> p != mover && p.col == move.targetCol && p.row == move.targetRow);
+        newBoard.removeIf(p -> p != movingPiece && p.col == move.targetCol && p.row == move.targetRow);
 
         // Castling rook
-        if (mover.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
-            int row = mover.row;
+        if (movingPiece.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
+            int row = movingPiece.row;
             if (move.targetCol == 6) {
-                Piece r = findPiece(newBoard, new Rook(mover.color, 7, row));
+                Piece r = findPiece(newBoard, new Rook(movingPiece.color, 7, row));
                 if (r != null) {
                     r.col=5;
                     r.moved = true;
                 }
             } else {
-                Piece r = findPiece(newBoard, new Rook(mover.color,0,row));
+                Piece r = findPiece(newBoard, new Rook(movingPiece.color,0,row));
                 if (r != null) {
                     r.col = 3;
                     r.moved = true;
                 }
             }
         }
-        mover.col = move.targetCol;
-        mover.row = move.targetRow;
-        mover.moved = true;
+        movingPiece.col = move.targetCol;
+        movingPiece.row = move.targetRow;
+        movingPiece.moved = true;
+
         return newBoard;
     }
 

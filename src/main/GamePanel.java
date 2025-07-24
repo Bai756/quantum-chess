@@ -579,7 +579,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handlePromotion(Type pieceType) {
-        String notation = generateNotation(
+        String notation;
+        notation = generateNotation(
                 activeP,
                 pieceType,
                 false,
@@ -690,6 +691,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private void handleSplitMove() {
         justSplit = true;
         Piece newPiece = SuperPosition.handleSplit(activeP);
+        GamePanel.pieces.add(newPiece);
+        GamePanel.simPieces.add(newPiece);
         newPiece.row = activeP.preRow;
         newPiece.col = activeP.preCol;
         newPiece.updatePosition();
@@ -718,7 +721,51 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             newRook.updatePosition();
         }
 
-    private void handleMove() {
+        awaitingMoveChoice = false;
+        handleMove();
+        justSplit = false;
+    }
+
+    public void handleAISplitMove(Piece activeP) {
+        this.activeP = activeP;
+        justSplit = true;
+        Piece newPiece = SuperPosition.handleSplit(activeP);
+        GamePanel.pieces.add(newPiece);
+        GamePanel.simPieces.add(newPiece);
+        newPiece.row = activeP.preRow;
+        newPiece.col = activeP.preCol;
+        newPiece.updatePosition();
+
+        String moveNotation;
+        moveNotation = generateNotation(
+                activeP,
+                null,
+                true,
+                hasAmplified,
+                amplifiedLocation,
+                captureOutcome
+        );
+
+        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+
+        if (castlingP != null) {
+            Piece newRook = SuperPosition.handleSplit(castlingP);
+            newRook.row = castlingP.preRow;
+            newRook.col = castlingP.preCol;
+            if (castlingP.col == 0) {
+                newRook.col += 3;
+            } else if (castlingP.col == 7) {
+                newRook.col -= 2;
+            }
+            newRook.updatePosition();
+        }
+
+        awaitingMoveChoice = false;
+        handleAIMove(activeP);
+        justSplit = false;
+    }
+
+    public void handleAIMove(Piece activeP) {
         char captureResult = ' ';
 
         if (activeP.hittingP != null) {
@@ -744,7 +791,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
 
         if (!justSplit) {
-            String moveNotation = generateNotation(
+            String moveNotation;
+            moveNotation = generateNotation(
                     activeP,
                     null,
                     false,
@@ -844,5 +892,58 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
 
         return notation.toString();
+    }
+    private void handleMove() {
+        char captureResult = ' ';
+
+        if (activeP.hittingP != null) {
+            captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+        } else {
+            if (canPromote()) {
+                promotion = true;
+                return;
+            }
+        }
+
+        if (captureResult == 'b' || captureResult == 'a') {
+            copyPieces(simPieces, pieces);
+            if (activeP.type == Type.PAWN &&
+                    ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
+                promotion = true;
+
+                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+                    isAITurnPending = true;
+                }
+
+                captureOutcome = captureResult;
+                return;
+            }
+        } else {
+            copyPieces(pieces, simPieces);
+        }
+
+        if (!justSplit) {
+            String moveNotation;
+            moveNotation = generateNotation(
+                    activeP,
+                    null,
+                    false,
+                    hasAmplified,
+                    amplifiedLocation,
+                    captureResult
+            );
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        }
+
+        if (castlingP != null) {
+            castlingP.updatePosition();
+        }
+        activeP.updatePosition();
+
+        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+            isAITurnPending = true;
+        }
+
+        changePlayer();
     }
 }
