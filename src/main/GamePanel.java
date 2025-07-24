@@ -211,7 +211,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_TAB && !tabHeld) {
             tabHeld = true;
-            tabHoldTimer = new Timer(100, _ -> {
+            tabHoldTimer = new Timer(100, evt -> {
 //                debugAmp = true;
                 debugProb = true;
             });
@@ -598,6 +598,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handlePromotion(Type pieceType) {
+
         String notation;
         notation = generateNotation(
                 activeP,
@@ -726,7 +727,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 captureOutcome
         );
 
-        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        String splitNotation = "|" + moveNotation + "|";
+        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + splitNotation);
 
         if (castlingP != null) {
             Piece newRook = SuperPosition.handleSplit(castlingP);
@@ -840,6 +842,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     public void handleAIMove(Piece activeP) {
         char captureResult = ' ';
+        int kingPreCol = (activeP.type == Type.KING) ? activeP.preCol : -1;
 
         if (activeP.hittingP != null) {
             captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
@@ -852,6 +855,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         if (captureResult == 'b' || captureResult == 'a') {
             copyPieces(simPieces, pieces);
+            activeP.updatePosition();
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
@@ -879,89 +883,104 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (castlingP != null) {
             castlingP.updatePosition();
         }
-        activeP.updatePosition();
+
+        if (!justSplit) {
+            String moveNotation;
+            boolean isCastling = false;
+            if (activeP.type == Type.KING && Math.abs(activeP.col - kingPreCol) == 2) {
+                moveNotation = (activeP.col == 6) ? "O-O" : "O-O-O";
+                isCastling = true;
+            } else {
+                moveNotation = generateMoveNotation(activeP);
+            }
+            if (activeP.type != Type.ROOK) {
+                if (activeP.hittingP != null && !isCastling) {
+                    moveNotation += captureResult;
+                }
+            }
+            if (hasAmplified) {
+                moveNotation = amplifiedLocation + "@" + moveNotation;
+            }
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        }
 
         isAITurnPending = false;
 
         changePlayer();
     }
 
-    public String generateNotation(Piece piece, Type promotedType, boolean isSplit, boolean hasAmplified, String amplifiedLocation, char captureOutcome) {
+    private String generatePromotionNotation(Piece pawn, Type promotedType) {
         StringBuilder notation = new StringBuilder();
 
-        // Amplification prefix
-        if (hasAmplified && amplifiedLocation != null) {
-            notation.append(amplifiedLocation).append("@");
+        if (pawn.hittingP != null) {
+            char originFile = (char) ('a' + pawn.preCol);
+            notation.append(originFile).append("x");
         }
 
-        // Split move
-        if (isSplit) {
-            notation.append("|");
+        char file = (char) ('a' + pawn.col);
+        int rank = 8 - pawn.row;
+        notation.append(file).append(rank);
+
+        notation.append("=").append(switch (promotedType) {
+            case QUEEN -> "Q";
+            case ROOK -> "R";
+            case BISHOP -> "B";
+            case KNIGHT -> "N";
+            default -> "?";
+        });
+
+        if (pawn.hittingP != null && captureOutcome != ' ') {
+            notation.append(captureOutcome);
         }
 
-        // Castling
+        int opponentColor = (pawn.color == WHITE) ? BLACK : WHITE;
+        if (!isKingPresent(opponentColor)) {
+            notation.append("#");
+        }
+
+        return notation.toString();
+    }
+  
+    public String generateMoveNotation(Piece piece) {
         if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
-            if (piece.col == 6) notation.append("O-O");
-            else if (piece.col == 2) notation.append("O-O-O");
-        } else if (promotedType != null) {
-            // Promotion
-            if (piece.hittingP != null) {
-                char originFile = (char) ('a' + piece.preCol);
-                notation.append(originFile).append("x");
-            }
-            char file = (char) ('a' + piece.col);
-            int rank = 8 - piece.row;
-            notation.append(file).append(rank);
-            notation.append("=").append(switch (promotedType) {
-                case QUEEN -> "Q";
-                case ROOK -> "R";
-                case BISHOP -> "B";
-                case KNIGHT -> "N";
-                default -> "?";
-            });
-            if (piece.hittingP != null && captureOutcome != ' ') {
-                notation.append(captureOutcome);
-            }
-            int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
-            if (!isKingPresent(opponentColor)) {
-                notation.append("#");
-            }
-        } else {
-            // Regular move
-            String pieceChar = switch (piece.type) {
-                case Type.KNIGHT -> "N";
-                case Type.BISHOP -> "B";
-                case Type.ROOK -> "R";
-                case Type.QUEEN -> "Q";
-                case Type.KING -> "K";
-                default -> "";
-            };
-            char file = (char) ('a' + piece.col);
-            int rank = 8 - piece.row;
-            boolean isCapture = piece.hittingP != null;
-            if (piece.type == Type.PAWN && isCapture) {
-                char originFile = (char) ('a' + piece.preCol);
-                notation.append(originFile).append("x");
-            } else {
-                notation.append(pieceChar);
-                if (isCapture) notation.append("x");
-            }
-            notation.append(file).append(rank);
-            if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7) && piece.hittingP == null) {
-                notation.append("n");
-            }
-            if (isCapture && captureOutcome != ' ') {
-                notation.append(captureOutcome);
-            }
-            int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
-            if (!isKingPresent(opponentColor)) {
-                notation.append("#");
-            }
+            if (piece.col == 6) return "O-O";
+            if (piece.col == 2) return "O-O-O";
         }
 
-        // Split move suffix
-        if (isSplit) {
-            notation.append("|");
+        StringBuilder notation = new StringBuilder();
+
+        String pieceChar = switch (piece.type) {
+            case Type.KNIGHT -> "N";
+            case Type.BISHOP -> "B";
+            case Type.ROOK   -> "R";
+            case Type.QUEEN  -> "Q";
+            case Type.KING   -> "K";
+            default          -> ""; // Pawn
+        };
+
+        char file = (char) ('a' + piece.col);
+        int rank = 8 - piece.row;
+
+        boolean isCapture = piece.hittingP != null;
+
+        if (piece.type == Type.PAWN && isCapture) {
+            char originFile = (char) ('a' + piece.preCol);
+            notation.append(originFile).append("x");
+        } else {
+            notation.append(pieceChar);
+            if (isCapture) notation.append("x");
+        }
+
+        notation.append(file).append(rank);
+
+        if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7) && piece.hittingP == null) {
+            notation.append("n"); // Default promotion is failed for split
+        }
+
+        int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
+        boolean kingGone = !isKingPresent(opponentColor);
+        if (kingGone) {
+            notation.append("#");
         }
 
         return notation.toString();

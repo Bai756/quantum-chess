@@ -1,23 +1,50 @@
 package main;
-
 import piece.*;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static main.GamePanel.pieces;
-import static main.GamePanel.simPieces;
-
+import javax.swing.*; import java.util.ArrayList; import java.util.Iterator; import java.util.List;
+import static main.GamePanel.pieces; import static main.GamePanel.simPieces;
 public class ChessAI {
     private static final int WHITE = 0;
     private static final int BLACK = 1;
-    private final GamePanel gamePanel;
+    private boolean gameOver = false;
+    private GamePanel gamePanel;
 
     public ChessAI(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
     }
 
-    private static int getPieceValue(Type type) {
+    public static void setGameOver(boolean gameOver) {
+        gameOver = gameOver;
+    }
+
+
+    private static List<Move> getAllLegalMoves(List<Piece> board, int color) {
+        List<Move> legalMoves = new ArrayList<>();
+        for (Piece piece : board) {
+            if (piece.color != color) continue;
+            for (int col = 0; col < 8; col++) {
+                for (int row = 0; row < 8; row++) {
+                    if (piece.canMove(col, row)) {
+                        legalMoves.add(new Move(piece, col, row));
+                    }
+                }
+            }
+        }
+        return legalMoves;
+    }
+
+
+    public static Piece findPiece(List<Piece> board, Piece reference) {
+        for (Piece p : board) {
+            if (p.type == reference.type &&
+                    p.color == reference.color &&
+                    p.col == reference.col &&
+                    p.row == reference.row) {
+                return p;
+            }
+        }
+        return null;
+    }
+    private int getPieceValue(Type type) {
         return switch (type) {
             case PAWN -> 100;
             case KNIGHT -> 300;
@@ -81,14 +108,15 @@ public class ChessAI {
                 return true;
             }
         }
-        return false;
+        return clone;
     }
-
+    // ChessAI.java
     public void performAIMove() {
-        System.out.println("AI is thinking...");
-        List<Move> legal = getAllLegalMoves(pieces, BLACK);
-        if (legal.isEmpty()) return;
-
+        List<Move> legalMoves = getAllLegalMoves(pieces, BLACK);
+        if (legalMoves.isEmpty()) {
+            System.out.println("AI has no legal moves.");
+            return;
+        }
         // Anmol's ai
 //        Move bestMove = null;
 //        int bestScore = Integer.MIN_VALUE;
@@ -104,7 +132,8 @@ public class ChessAI {
         MinimaxResult result = minimax(pieces, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         Move bestMove = result.move;
         if (bestMove == null) {
-            return;
+            System.out.println("No safe move found. Playing fallback.");
+            bestMove = legalMoves.get(0);
         }
 
         Piece mover = bestMove.piece;
@@ -156,6 +185,7 @@ public class ChessAI {
         GamePanel.lastMoveWasHuman = false;
 
         gamePanel.copyPieces(pieces, simPieces);
+        gamePanel.repaint();
 
         System.out.println(bestMove.piece + " moved to " + bestMove.targetCol + "," + bestMove.targetRow);
         System.out.println(mover.hittingP);
@@ -163,9 +193,10 @@ public class ChessAI {
 
         String notation = gamePanel.generateNotation(mover, null, false, false, null, captureOutcome);
         gamePanel.moveTrackerPanel.logMove("Black: " + notation);
+        gamePanel.chatPanel.automsg("Black (AI): " + notation);
 
         if (GamePanel.isKingCaptured()) {
-            gamePanel.gameOver = true;
+            gameOver = true;
         } else if (gamePanel.isDrawByInsufficientMaterial()) {
             gamePanel.stalemate = true;
         } else {
@@ -216,10 +247,12 @@ public class ChessAI {
 
     private record MinimaxResult(int score, Move move) {
     }
+    private boolean isKingInCheck(List<Piece> board, int color) {
+        int enemyColor = (color == WHITE) ? BLACK : WHITE;
+        Piece king = null;
 
-    private static List<Move> getAllLegalMoves(List<Piece> board, int color) {
-        List<Move> moves = new ArrayList<>();
         for (Piece p : board) {
+
             if (p.color != color) continue;
             // Normal moves
             for (int c = 0; c < 8; c++) {
@@ -356,7 +389,9 @@ public class ChessAI {
         int whiteMobility = 0, blackMobility = 0;
         int[][] centerSquares = {{3,3},{3,4},{4,3},{4,4}};
 
+        Piece victim = null;
         for (Piece p : board) {
+
             int v = getPieceValue(p.type);
             if (p.color == BLACK) {
                 materialScore += v;
@@ -406,27 +441,18 @@ public class ChessAI {
         score += 30 * (blackCenter - whiteCenter);
         score += 10 * (blackMobility - whiteMobility);
 
-        return score;
-    }
+        int attackerValue = getPieceValue(attacker.type);
+        int victimValue = getPieceValue(victim.type);
 
-    private static boolean isGameOver(List<Piece> b) {
-        boolean white = false, black = false;
-        for (Piece p : b) {
-            if (p.type == Type.KING) {
-                if (p.color == WHITE) white = true;
-                else black = true;
-            }
-        }
-        return !(white && black);
-    }
+        boolean targetDefended = isSquareDefended(targetCol, targetRow, board, victim.color);
+        boolean attackerDefended = isSquareDefended(attacker.col, attacker.row, board, attacker.color);
+        System.out.println("Target defended: " + isSquareDefended(targetCol, targetRow, board, victim.color));
+        System.out.println("Attacker defended: " + isSquareDefended(attacker.col, attacker.row, board, attacker.color));
 
-    private static Piece findPiece(List<Piece> board, Piece reference) {
-        for (Piece p : board) {
-            if (p.type == reference.type && p.color == reference.color
-                    && p.col == reference.col && p.row == reference.row)
-                return p;
-        }
-        return null;
+        boolean isFavorableTrade = attackerValue < victimValue;
+        boolean isProtectedAttack = attackerDefended && !targetDefended;
+
+        return !(isFavorableTrade || isProtectedAttack);
     }
 
     private void printBoard(List<Piece> board) {
@@ -458,3 +484,4 @@ public class ChessAI {
         System.out.println("  a b c d e f g h");
     }
 }
+
