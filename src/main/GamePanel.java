@@ -1,6 +1,7 @@
 package main;
 
 import java.awt.AlphaComposite;
+import static java.awt.AlphaComposite.getInstance;
 import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -9,20 +10,14 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import javax.swing.*;
 
-import piece.Bishop;
-import piece.King;
-import piece.Knight;
-import piece.Pawn;
-import piece.Piece;
-import piece.Queen;
-import piece.Rook;
+import piece.*;
 
-import static java.awt.AlphaComposite.getInstance;
-
-public class GamePanel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
     final int FPS = 60;
@@ -43,14 +38,25 @@ public class GamePanel extends JPanel implements Runnable {
     boolean gameOver;
     boolean stalemate;
     boolean isAITurnPending;
-
+    boolean hasAmplified = false;
+    String amplifiedLocation = null;
+    
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
-    public final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
+    private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
+    private final MouseAdapter hoverEffect;
+    private final RoundedButton amplifyButton;
     private boolean awaitingMoveChoice = false;
+    private boolean justSplit = false;
+    private char captureOutcome = ' ';
+    private boolean debugAmp = false;
+    private boolean debugProb = false;
+    private boolean tabHeld = false;
+    private Timer tabHoldTimer;
     public GameMode gameMode = GameMode.HUMAN_VS_AI;
     private ChessAI chessAI;
     public static boolean lastMoveWasHuman = true;
+
 
     public GamePanel() {
         if (gameMode == GameMode.HUMAN_VS_AI) {
@@ -72,7 +78,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         moveChoicePanel = new JPanel();
         moveChoicePanel.setLayout(null);
-        moveChoicePanel.setBounds(820, 600, 100, 80); // Position it as needed
+        moveChoicePanel.setBounds(820, 600, 150, 120); // Position it as needed
         moveChoicePanel.setVisible(false);
         moveChoicePanel.setOpaque(false);
         moveChoicePanel.setBackground(new Color(0, 0, 0, 0)); // Fully transparent
@@ -80,7 +86,7 @@ public class GamePanel extends JPanel implements Runnable {
         promotionPanel = new JPanel();
         promotionPanel.setLayout(null);
         promotionPanel.setVisible(false);
-        promotionPanel.setBounds(400, 300, 120, 200); // position it near center or wherever fits
+        promotionPanel.setBounds(400, 300, 120, 250); // Position it near the center
         promotionPanel.setOpaque(false);
         promotionPanel.setBackground(new Color(0, 0, 0, 0));
 
@@ -88,11 +94,6 @@ public class GamePanel extends JPanel implements Runnable {
         queenButton.setBounds(0, 0, 120, 40);
         buttonFormat(queenButton);
         queenButton.addActionListener(_ -> handlePromotion(Type.QUEEN));
-
-        RoundedButton knightButton = new RoundedButton("Knight");
-        knightButton.setBounds(0, 150, 120, 40);
-        buttonFormat(knightButton);
-        knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
 
         RoundedButton rookButton = new RoundedButton("Rook");
         rookButton.setBounds(0, 50, 120, 40);
@@ -104,34 +105,67 @@ public class GamePanel extends JPanel implements Runnable {
         buttonFormat(bishopButton);
         bishopButton.addActionListener(_ -> handlePromotion(Type.BISHOP));
 
+        RoundedButton knightButton = new RoundedButton("Knight");
+        knightButton.setBounds(0, 150, 120, 40);
+        buttonFormat(knightButton);
+        knightButton.addActionListener(_ -> handlePromotion(Type.KNIGHT));
+
         promotionPanel.add(queenButton);
-        promotionPanel.add(knightButton);
         promotionPanel.add(rookButton);
         promotionPanel.add(bishopButton);
+        promotionPanel.add(knightButton);
         moveChoicePanel.setOpaque(false);
         moveChoicePanel.setBackground(new Color(0, 0, 0, 0));
         this.add(promotionPanel);
 
         RoundedButton regularButton = new RoundedButton("Regular");
         regularButton.setBounds(0, 0, 120, 40);
-        regularButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        regularButton.setBackground(new Color(0,0,0));
-        regularButton.setForeground(Color.WHITE);
-        regularButton.setFocusPainted(false);
-        regularButton.setBorderPainted(false);
+        buttonFormat(regularButton);
+        regularButton.addActionListener(_ -> handleMove());
+
         RoundedButton splitButton = new RoundedButton("Split");
         splitButton.setBounds(130, 0, 120, 40);
-        splitButton.setFont(new Font("SansSerif",Font.PLAIN,20));
-        splitButton.setBackground(new Color(0,0,0));
-        splitButton.setForeground(Color.WHITE);
-        splitButton.setFocusPainted(false);
-        splitButton.setBorderPainted(false);
+        buttonFormat(splitButton);
+        splitButton.addActionListener(_ -> handleSplitMove());
+
+        RoundedButton cancelMoveButton = new RoundedButton("Cancel");
+        cancelMoveButton.setBounds(130, 50, 120, 40);
+        buttonFormat(cancelMoveButton);
+        cancelMoveButton.addActionListener(_ -> {
+            if (activeP != null) {
+                activeP.resetPosition();
+                activeP = null;
+            }
+            if (castlingP != null) {
+                castlingP.resetPosition();
+                castlingP = null;
+            }
+            moveChoicePanel.setVisible(false);
+            awaitingMoveChoice = false;
+        });
 
         moveChoicePanel.add(regularButton);
         moveChoicePanel.add(splitButton);
+        moveChoicePanel.add(cancelMoveButton);
         this.add(moveChoicePanel);
 
-        MouseAdapter hoverEffect = new MouseAdapter() {
+        amplifyButton = new RoundedButton("Amplify");
+        amplifyButton.setBounds(0, 50, 90, 40);
+        buttonFormat(amplifyButton);
+        amplifyButton.addActionListener(_ -> {
+            if (activeP != null) {
+                SuperPosition.amplifyPiece(activeP);
+                amplifyButton.setVisible(false);
+                amplifiedLocation = String.format("%c%d", 'a' + activeP.col, 8 - activeP.row);
+                awaitingMoveChoice = false;
+                hasAmplified = true;
+                chatPanel.displaySystemMessage("Amplified at " + amplifiedLocation);
+            }
+        });
+        this.add(amplifyButton);
+        amplifyButton.setVisible(false);
+
+        this.hoverEffect = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 JButton source = (JButton) e.getSource();
@@ -147,12 +181,40 @@ public class GamePanel extends JPanel implements Runnable {
             }
         };
 
-        regularButton.addMouseListener(hoverEffect);
-        splitButton.addMouseListener(hoverEffect);
-
-        regularButton.addActionListener(_ -> handleMove());
-        splitButton.addActionListener(_ -> handleSplitMove());
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
+        this.setFocusable(true);
+        this.requestFocusInWindow();
+        addKeyListener(this);
     }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_TAB && !tabHeld) {
+            tabHeld = true;
+            tabHoldTimer = new Timer(100, evt -> {
+//                debugAmp = true;
+                debugProb = true;
+            });
+            tabHoldTimer.start();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_TAB) {
+            tabHeld = false;
+            if (tabHoldTimer != null) {
+                tabHoldTimer.stop();
+                tabHoldTimer = null;
+            }
+            debugAmp = false;
+            debugProb = false;
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
 
     private void buttonFormat(RoundedButton button){
         button.setFont(new Font("SansSerif",Font.PLAIN,20));
@@ -160,6 +222,7 @@ public class GamePanel extends JPanel implements Runnable {
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
+        button.addMouseListener(this.hoverEffect);
     }
 
     public void launchGame() {
@@ -168,15 +231,15 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void setPieces() {
-//        pieces.add(new Pawn(WHITE, 0, 3));
-//        pieces.add(new Pawn(WHITE, 1, 3));
-//        pieces.add(new Pawn(WHITE, 2, 3));
-//        pieces.add(new Pawn(WHITE, 3, 3));
+//        pieces.add(new Pawn(WHITE, 0, 1));
+//        pieces.add(new Pawn(WHITE, 1, 1));
+//        pieces.add(new Pawn(WHITE, 2, 1));
+//        pieces.add(new Pawn(WHITE, 3, 1));
 //
-//        pieces.get(0).probability = 0.25;
-//        pieces.get(1).probability = 0.25;
-//        pieces.get(2).probability = 0.25;
-//        pieces.get(3).probability = 0.25;
+//        pieces.get(0).amplitude = Complex.ONE;
+//        pieces.get(1).amplitude = Complex.ONE;
+//        pieces.get(2).amplitude = Complex.ONE;
+//        pieces.get(3).amplitude = Complex.ONE;
 //
 //        pieces.get(0).connectedPieces.add(pieces.get(1));
 //        pieces.get(0).connectedPieces.add(pieces.get(2));
@@ -193,17 +256,18 @@ public class GamePanel extends JPanel implements Runnable {
 //        pieces.get(3).connectedPieces.add(pieces.get(0));
 //        pieces.get(3).connectedPieces.add(pieces.get(1));
 //        pieces.get(3).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).normalizeAmplitude();
 //
 //        // Initialize black pawns in row 2
-//        pieces.add(new Pawn(BLACK, 0, 2));
-//        pieces.add(new Pawn(BLACK, 1, 2));
-//        pieces.add(new Pawn(BLACK, 2, 2));
-//        pieces.add(new Pawn(BLACK, 3, 2));
+//        pieces.add(new Pawn(BLACK, 4, 6));
+//        pieces.add(new Pawn(BLACK, 5, 6));
+//        pieces.add(new Pawn(BLACK, 6, 6));
+//        pieces.add(new Pawn(BLACK, 7, 6));
 //
-//        pieces.get(4).probability = 0.25;
-//        pieces.get(5).probability = 0.25;
-//        pieces.get(6).probability = 0.25;
-//        pieces.get(7).probability = 0.25;
+//        pieces.get(4).amplitude = Complex.ONE;
+//        pieces.get(5).amplitude = Complex.ONE;
+//        pieces.get(6).amplitude = Complex.ONE;
+//        pieces.get(7).amplitude = Complex.ONE;
 //
 //        pieces.get(4).connectedPieces.add(pieces.get(5));
 //        pieces.get(4).connectedPieces.add(pieces.get(6));
@@ -220,10 +284,11 @@ public class GamePanel extends JPanel implements Runnable {
 //        pieces.get(7).connectedPieces.add(pieces.get(4));
 //        pieces.get(7).connectedPieces.add(pieces.get(5));
 //        pieces.get(7).connectedPieces.add(pieces.get(6));
+//        pieces.get(4).normalizeAmplitude();
 
         // Initialize white pawns
         for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 2));
+            pieces.add(new Pawn(WHITE, col, 6));
         }
 
         // Initialize white major pieces
@@ -237,9 +302,9 @@ public class GamePanel extends JPanel implements Runnable {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(BLACK, col, 1));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(BLACK, col, 1));
+        }
         // Initialize black major pieces
         pieces.add(new Rook(BLACK, 0, 0));
         pieces.add(new Knight(BLACK, 1, 0));
@@ -281,37 +346,77 @@ public class GamePanel extends JPanel implements Runnable {
         } else if (!gameOver) {
             if (mouse.pressed) {
                 if (activeP == null) {
+                    boolean found = false;
                     for (Piece piece : simPieces) {
                         if (piece.color == currentColor && piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
                             activeP = piece;
+                            boolean eligible = piece.connectedPieces.size() >= 2 && !hasAmplified;
+                            amplifyButton.setVisible(eligible);
+                            if (eligible) {
+                                amplifyButton.setBounds(piece.x - 10, piece.y + 30, 120, 40);
+                                moveChoicePanel.setVisible(false);
+                            }
+                            found = true;
                             break;
                         }
                     }
+                    if (!found) {
+                        amplifyButton.setVisible(false);
+                    }
                 } else if (!awaitingMoveChoice) {
                     simulate();
+                } else {
+                    amplifyButton.setVisible(false);
                 }
             }
 
             if (!mouse.pressed && activeP != null) {
                 if (validSquare && !awaitingMoveChoice) {
-                    if (activeP.hittingP != null || (currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)) { // If it's a capture or promotion
+                    if (activeP.hittingP != null ||
+                            (activeP.type == Type.PAWN && ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7)))) { // Capture or promotion
+
                         handleMove();
                         return;
                     }
+
                     awaitingMoveChoice = true;
+                    amplifyButton.setVisible(false);
+
                     int x = activeP.x;
                     int y = activeP.y;
-                    if (x <= 550 && y >= 40) { // Normal move
-                        moveChoicePanel.setBounds(x, y, 250, 40);
+
+                    if (x <= 550 && x >= 10 && y >= 50 && y <= 710) { // Normal move
+                        moveChoicePanel.setBounds(x, y, 250, 90);
                     } else if (x > 550) { // If it's on the right
-                        moveChoicePanel.setBounds(x - 200, y, 250, 40);
-                    } else // If it's too high
-                        moveChoicePanel.setBounds(x, y + 100, 250, 40);
+                        int dx = x - 540;
+                        moveChoicePanel.setBounds(x - dx, y, 250, 90);
+                    } else if (x < 10) { // If it's on the left
+                        int dx = 10 - x;
+                        moveChoicePanel.setBounds(x + dx, y, 250, 90);
+                    } else if (y < 60) { // If it's too high
+                        int dy = 60 - y;
+                        moveChoicePanel.setBounds(x, y + dy, 250, 90);
+                    } else { // If it's too low
+                        int dy = y - 700;
+                        moveChoicePanel.setBounds(x, y - dy, 250, 90);
+                    }
                     moveChoicePanel.setVisible(true);
+
                 } else if (!awaitingMoveChoice) {
-                    copyPieces(pieces, simPieces);
-                    activeP.resetPosition();
-                    activeP = null;
+                    Point mousePoint = new Point(mouse.x, mouse.y);
+                    Rectangle ampBounds = amplifyButton.getBounds();
+                    boolean overAmplify = ampBounds.contains(mousePoint);
+
+                    Rectangle pieceSquare = new Rectangle(activeP.x, activeP.y, 100, 100);
+                    boolean overPieceSquare = pieceSquare.contains(mousePoint);
+
+                    if (activeP != null) activeP.resetPosition();
+
+                    if (!overAmplify && !overPieceSquare) {
+                        copyPieces(pieces, simPieces);
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                    }
                 }
             }
         }
@@ -427,12 +532,25 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void changePlayer() {
+        if (isKingCaptured()) {
+            gameOver = true;
+        } else if (isDrawByInsufficientMaterial()) {
+            stalemate = true;
+        }
+
         currentColor = (currentColor == WHITE) ? BLACK : WHITE;
         for (Piece piece : simPieces) {
             if (piece.color == currentColor) {
                 piece.twoMoved = false;
             }
         }
+
+        activeP = null;
+        moveChoicePanel.setVisible(false);
+        amplifyButton.setVisible(false);
+        awaitingMoveChoice = false;
+        hasAmplified = false;
+        justSplit = false;
 
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
@@ -459,7 +577,17 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void handlePromotion(Type pieceType) {
         String notation = generatePromotionNotation(activeP, pieceType);
-        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + notation);
+
+        if (hasAmplified && amplifiedLocation != null) {
+            notation = amplifiedLocation + "@" + notation;
+            amplifiedLocation = null;
+            hasAmplified = false;
+        }
+
+        if (!justSplit) {
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + notation);
+        }
+
         if (pieceType == Type.QUEEN) {
             simPieces.add(new Queen(currentColor, activeP.col, activeP.row));
             chatPanel.displaySystemMessage((currentColor == WHITE ? "White" : "Black") + " promoted to Queen.");
@@ -478,9 +606,9 @@ public class GamePanel extends JPanel implements Runnable {
         copyPieces(simPieces, pieces);
         promotionPanel.setVisible(false);
         promotion = false;
-        changePlayer();
+        captureOutcome = ' ';
 
-        activeP = null;
+        changePlayer();
     }
 
     @Override
@@ -491,8 +619,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Make pieces semi-transparent based on their probability
         AlphaComposite original = (AlphaComposite) g2.getComposite();
-        ArrayList<Piece> piecesToDraw = new ArrayList<>(simPieces);
-        for (Piece piece : piecesToDraw) {
+        ArrayList<Piece> piecesCopy = new ArrayList<>(simPieces);
+        for (Piece piece : piecesCopy) {
             if (piece.amplitude.absSquared() != 0.0) {
                 int x = piece.x;
                 int y = piece.y;
@@ -501,10 +629,17 @@ public class GamePanel extends JPanel implements Runnable {
                 g2.setComposite(getInstance(AlphaComposite.SRC_OVER, alpha));
                 g2.drawImage(piece.image, x + 5, y + 5, 90, 90, null);
 
-                g2.setFont(new Font("Arial", Font.PLAIN, 16));
+                g2.setFont(new Font("TimesNewRoman", Font.PLAIN, 14));
                 g2.setColor(Color.YELLOW);
-                String ampText = String.format("%.2f + %.2fi", piece.amplitude.re(), piece.amplitude.im());
-                g2.drawString(ampText, x + 10, y + 30);
+                g2.setComposite(original);
+                if (debugAmp) {
+                    String ampText = String.format("%.2f + %.2fi", piece.amplitude.re(), piece.amplitude.im());
+                    g2.drawString(ampText, x + 10, y + 30);
+                }
+                if (debugProb) {
+                    String probText = String.format("%.2f", piece.amplitude.absSquared());
+                    g2.drawString(probText, x + 35, y + 90);
+                }
             }
         }
         g2.setComposite(original);
@@ -549,21 +684,50 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void handleSplitMove() {
+        justSplit = true;
         Piece newPiece = SuperPosition.handleSplit(activeP);
         newPiece.row = activeP.preRow;
         newPiece.col = activeP.preCol;
-
         newPiece.updatePosition();
 
-        awaitingMoveChoice = false;
+        String moveNotation = generateMoveNotation(activeP);
 
+        if (activeP.hittingP != null) {
+            char outcome = activeP.hittingP.color == activeP.color ? 'd' : 'a';
+            moveNotation += outcome;
+            captureOutcome = outcome;
+        }
+
+        if (hasAmplified) {
+            moveNotation = amplifiedLocation + "@" + moveNotation;
+        }
+
+        String splitNotation = "|" + moveNotation + "|";
+        moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + splitNotation);
+
+        if (castlingP != null) {
+            Piece newRook = SuperPosition.handleSplit(castlingP);
+            newRook.row = castlingP.preRow;
+            newRook.col = castlingP.preCol;
+            if (castlingP.col == 0) {
+                newRook.col += 3;
+            } else if (castlingP.col == 7) {
+                newRook.col -= 2;
+            }
+            newRook.updatePosition();
+        }
+
+        awaitingMoveChoice = false;
         handleMove();
+        justSplit = false;
     }
 
     private void handleMove() {
-        boolean success = false;
+        char captureResult = ' ';
+        int kingPreCol = (activeP.type == Type.KING) ? activeP.preCol : -1;
+
         if (activeP.hittingP != null) {
-            success = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+            captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
         } else {
             if (canPromote()) {
                 promotion = true;
@@ -571,16 +735,18 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        // If capture successful, copy the simulation else go back to original pieces
-        if (success) {
+        if (captureResult == 'b' || captureResult == 'a') {
             copyPieces(simPieces, pieces);
             activeP.updatePosition();
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
+              
                 if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
                     isAITurnPending = true;
                 }
+
+                captureOutcome = captureResult;
                 return;
             }
         } else {
@@ -591,40 +757,73 @@ public class GamePanel extends JPanel implements Runnable {
         if (castlingP != null) {
             castlingP.updatePosition();
         }
-        if (isKingCaptured()) {
-            gameOver = true;
-        } else if (isDrawByInsufficientMaterial()) {
-            stalemate = true;
-        } else {
-            String moveNotation = generateMoveNotation(activeP);
+
+        if (!justSplit) {
+            String moveNotation;
+            boolean isCastling = false;
+            if (activeP.type == Type.KING && Math.abs(activeP.col - kingPreCol) == 2) {
+                moveNotation = (activeP.col == 6) ? "O-O" : "O-O-O";
+                isCastling = true;
+            } else {
+                moveNotation = generateMoveNotation(activeP);
+            }
+            if (activeP.type != Type.ROOK) {
+                if (activeP.hittingP != null && !isCastling) {
+                    moveNotation += captureResult;
+                }
+            }
+            if (hasAmplified) {
+                moveNotation = amplifiedLocation + "@" + moveNotation;
+            }
             moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
-            copyPieces(pieces, simPieces);
         }
 
-        activeP = null;
-        moveChoicePanel.setVisible(false);
-        awaitingMoveChoice = false;
         if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
             isAITurnPending = true;
         }
+      
         changePlayer();
     }
 
     private String generatePromotionNotation(Piece pawn, Type promotedType) {
+        StringBuilder notation = new StringBuilder();
+
+        if (pawn.hittingP != null) {
+            char originFile = (char) ('a' + pawn.preCol);
+            notation.append(originFile).append("x");
+        }
+
         char file = (char) ('a' + pawn.col);
         int rank = 8 - pawn.row;
-        return file + "" + rank + "=" + switch (promotedType) {
+        notation.append(file).append(rank);
+
+        notation.append("=").append(switch (promotedType) {
             case QUEEN -> "Q";
             case ROOK -> "R";
             case BISHOP -> "B";
             case KNIGHT -> "N";
             default -> "?";
-        };
+        });
+
+        if (pawn.hittingP != null && captureOutcome != ' ') {
+            notation.append(captureOutcome);
+        }
+
+        int opponentColor = (pawn.color == WHITE) ? BLACK : WHITE;
+        if (!isKingPresent(opponentColor)) {
+            notation.append("#");
+        }
+
+        return notation.toString();
     }
-
+  
     public String generateMoveNotation(Piece piece) {
-        StringBuilder notation = new StringBuilder();
+        if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
+            if (piece.col == 6) return "O-O";
+            if (piece.col == 2) return "O-O-O";
+        }
 
+        StringBuilder notation = new StringBuilder();
 
         String pieceChar = switch (piece.type) {
             case Type.KNIGHT -> "N";
@@ -635,12 +834,10 @@ public class GamePanel extends JPanel implements Runnable {
             default          -> ""; // Pawn
         };
 
-
         char file = (char) ('a' + piece.col);
         int rank = 8 - piece.row;
 
         boolean isCapture = piece.hittingP != null;
-
 
         if (piece.type == Type.PAWN && isCapture) {
             char originFile = (char) ('a' + piece.preCol);
@@ -652,11 +849,9 @@ public class GamePanel extends JPanel implements Runnable {
 
         notation.append(file).append(rank);
 
-
-        if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7)) {
-            notation.append("=Q"); // Assuming promotion always to Queen
+        if (piece.type == Type.PAWN && (piece.row == 0 || piece.row == 7) && piece.hittingP == null) {
+            notation.append("n"); // Default promotion is failed for split
         }
-
 
         int opponentColor = (piece.color == WHITE) ? BLACK : WHITE;
         boolean kingGone = !isKingPresent(opponentColor);

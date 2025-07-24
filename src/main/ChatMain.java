@@ -5,9 +5,9 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class ChatMain extends JPanel{
-    private JTextArea chatArea;
-    private JTextField inputField;
-    private JButton sendButton;
+    private final JTextArea chatArea;
+    private final JTextField inputField;
+    private final JButton sendButton;
     private int currentColor; // 0 = WHITE, 1 = BLACK
 
 

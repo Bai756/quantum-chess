@@ -5,7 +5,7 @@ import piece.Complex;
 import java.util.ArrayList;
 
 public class SuperPosition {
-    public static boolean resolveCapture(Piece attacker, Piece defender) {
+    public static char resolveCapture(Piece attacker, Piece defender) {
         double aProb = attacker.amplitude.absSquared();
         double dProb = defender.amplitude.absSquared();
 
@@ -17,25 +17,25 @@ public class SuperPosition {
             removePiece(defender);
             collapseTo(attacker);
             System.out.println("Both a and d");
-            return true;
+            return 'b';
 
         } else if (aHere) {
             collapseTo(attacker);
             removePiece(defender);
             System.out.println("Only a");
-            return true;
+            return 'a';
 
         } else if (dHere) {
             collapseTo(defender);
             removePiece(attacker);
             System.out.println("Only d");
-            return false;
+            return 'd';
 
         } else {
             removePiece(attacker);
             removePiece(defender);
             System.out.println("Neither a nor d");
-            return false;
+            return 'n';
         }
     }
 
@@ -99,5 +99,31 @@ public class SuperPosition {
             removePiece(piece);
             return false;
         }
+    }
+
+    public static void amplifyPiece(Piece target) {
+        // What amplification does is it takes the target piece and all its connected pieces,
+        // phase shifts the target piece (makes it negative) then
+        // it inverts their amplitudes around the mean amplitude of the group.
+
+        ArrayList<Piece> connectedGroup = new ArrayList<>(target.connectedPieces);
+        connectedGroup.add(target);
+
+        target.amplitude = target.amplitude.multiply(-1.0);
+
+        Complex meanAmp = Complex.ZERO;
+        for (Piece p : connectedGroup) {
+            meanAmp = meanAmp.add(p.amplitude);
+        }
+        meanAmp = meanAmp.divide(connectedGroup.size());
+
+        for (Piece p : connectedGroup) {
+            p.amplitude = meanAmp.multiply(2).subtract(p.amplitude);
+            if (p.amplitude.absSquared() < 0.01) {
+                removePiece(p);
+            }
+        }
+
+        target.normalizeAmplitude();
     }
 }
