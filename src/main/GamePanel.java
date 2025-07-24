@@ -43,7 +43,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     
     private final JPanel moveChoicePanel;
     private final JPanel promotionPanel;
-    private final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
+    final MoveTrackerPanel moveTrackerPanel = new MoveTrackerPanel();
     private final MouseAdapter hoverEffect;
     private final RoundedButton amplifyButton;
     private boolean awaitingMoveChoice = false;

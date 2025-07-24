@@ -43,13 +43,13 @@ public class MoveTrackerPanel extends JPanel {
 
     private void updateDisplay() {
         StringBuilder builder = new StringBuilder();
-        builder.append(String.format("%-15s | %-15s%n", "White", "Black"));
-        builder.append("----------------------------------\n");
+        builder.append(String.format("%-16s | %-16s%n", "White", "Black"));
+        builder.append("-----------------------------------\n");
 
         for (int i = 0; i < Math.max(whiteMoves.size(), blackMoves.size()); i++) {
             String whiteMove = i < whiteMoves.size() ? whiteMoves.get(i) : "";
             String blackMove = i < blackMoves.size() ? blackMoves.get(i) : "";
-            builder.append(String.format("%d. %-12s | %-12s%n", i + 1, whiteMove, blackMove));        }
+            builder.append(String.format("%2d. %-12s | %-12s%n", i + 1, whiteMove, blackMove));        }
 
         moveLogArea.setText(builder.toString());
     }
