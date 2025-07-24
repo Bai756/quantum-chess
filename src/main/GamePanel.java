@@ -21,7 +21,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
     final int FPS = 60;
-    ChatMain chatPanel = new ChatMain();
+    public ChatMain chatPanel = new ChatMain();
     Thread gameThread;
     Board board = new Board();
     Mouse mouse = new Mouse();
@@ -37,6 +37,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     boolean promotion;
     boolean gameOver;
     boolean stalemate;
+    boolean isAITurnPending;
     boolean hasAmplified = false;
     String amplifiedLocation = null;
     
@@ -52,9 +53,15 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private boolean debugProb = false;
     private boolean tabHeld = false;
     private Timer tabHoldTimer;
+    public GameMode gameMode = GameMode.HUMAN_VS_AI;
+    private ChessAI chessAI;
+    public static boolean lastMoveWasHuman = true;
 
 
     public GamePanel() {
+        if (gameMode == GameMode.HUMAN_VS_AI) {
+            chessAI = new ChessAI(GamePanel.this);
+        }
         this.setPreferredSize(new Dimension(WIDTH, HEIGHT));
         this.setBackground(Color.black);
         this.addMouseMotionListener(this.mouse);
@@ -309,7 +316,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         pieces.add(new Rook(BLACK, 7, 0));
     }
 
-    private void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
+    public void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
         target.clear();
         target.addAll(source);
     }
@@ -333,6 +340,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void update() {
+//        System.out.println("Update running, color: " + currentColor + ", aiTurnPending: " + isAITurnPending);
         if (promotion) {
             promotionPanel.setVisible(true);
         } else if (!gameOver) {
@@ -440,7 +448,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
     }
 
-    private boolean isKingCaptured() {
+    public static boolean isKingCaptured() {
         boolean whiteKing = false;
         boolean blackKing = false;
         for (Piece piece : simPieces) {
@@ -452,7 +460,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         return !(whiteKing && blackKing);
     }
 
-    private boolean isDrawByInsufficientMaterial() {
+    public boolean isDrawByInsufficientMaterial() {
         int whiteBishops = 0, blackBishops = 0;
         int whiteKnights = 0, blackKnights = 0;
         int whiteOthers = 0, blackOthers = 0;
@@ -523,7 +531,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
     }
 
-    private void changePlayer() {
+    public void changePlayer() {
         if (isKingCaptured()) {
             gameOver = true;
         } else if (isDrawByInsufficientMaterial()) {
@@ -547,6 +555,15 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         String itsurturn = (this.currentColor == 0) ? "Game: White to Move\n" : "Game: Black to Move\n";
         chatPanel.setCurrentColor(currentColor);
         chatPanel.automsg(itsurturn);
+
+        if (gameMode == GameMode.HUMAN_VS_AI && isAITurnPending && lastMoveWasHuman == true) {
+            chessAI.performAIMove();
+            isAITurnPending = false;
+        }
+        else {
+            lastMoveWasHuman = true;
+        }
+        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
     }
 
     private boolean canPromote() {
@@ -644,9 +661,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (gameOver) {
             String s;
             if (isKingPresent(WHITE)) {
-                s = "White Wins";
+                s = "White cooked";
             } else if (isKingPresent(BLACK)) {
-                s = "Black Wins";
+                s = "Black cooked";
             } else s = "Game Over";
 
             g2.setFont(new Font("Ariel", Font.PLAIN, 90));
@@ -724,6 +741,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             if (activeP.type == Type.PAWN &&
                     ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
                 promotion = true;
+              
+                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+                    isAITurnPending = true;
+                }
+
                 captureOutcome = captureResult;
                 return;
             }
@@ -756,6 +778,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
         }
 
+        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+            isAITurnPending = true;
+        }
+      
         changePlayer();
     }
 
@@ -791,7 +817,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         return notation.toString();
     }
   
-    private String generateMoveNotation(Piece piece) {
+    public String generateMoveNotation(Piece piece) {
         if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
             if (piece.col == 6) return "O-O";
             if (piece.col == 2) return "O-O-O";
