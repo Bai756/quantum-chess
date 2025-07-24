@@ -4,10 +4,14 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import main.GamePanel;
 import main.Type;
+
+import static main.GamePanel.WHITE;
 
 public class Piece implements Cloneable {
     public Type type;
@@ -24,6 +28,7 @@ public class Piece implements Cloneable {
     public boolean twoMoved;
     public ArrayList<Piece> connectedPieces = new ArrayList<>();
     public Complex amplitude = Complex.ONE;
+    public boolean hasMoved;
 
     public Piece(int color, int col, int row) {
         this.color = color;
@@ -257,5 +262,48 @@ public class Piece implements Cloneable {
                 p.amplitude = Complex.ZERO;
             }
         }
+    }
+    public boolean canAttack(int targetCol, int targetRow, List<Piece> board) {
+        // Pawns attack diagonally, not forward
+        if (this.type == Type.PAWN) {
+            int direction = (this.color == WHITE) ? -1 : 1;
+            return (targetRow == this.row + direction) &&
+                    (targetCol == this.col + 1 || targetCol == this.col - 1);
+        }
+
+        // For sliding pieces, check path clearance
+        if (this.type == Type.BISHOP || this.type == Type.ROOK || this.type == Type.QUEEN) {
+            if (!isPathClear(this.col, this.row, targetCol, targetRow, board)) {
+                return false;
+            }
+        }
+
+        // Use canMove if movement logic is valid and includes checks
+        return this.canMove(targetCol, targetRow);
+    }
+    private boolean isPathClear(int startCol, int startRow, int endCol, int endRow, List<Piece> board) {
+        int dCol = Integer.compare(endCol, startCol);
+        int dRow = Integer.compare(endRow, startRow);
+
+        int col = startCol + dCol;
+        int row = startRow + dRow;
+
+        while (col != endCol || row != endRow) {
+            for (Piece p : board) {
+                if (p.col == col && p.row == row) return false; // something blocks the path
+            }
+            col += dCol;
+            row += dRow;
+        }
+        return true;
+    }
+    private boolean pathIsClearQuick(int targetCol, int targetRow, Map<String, Piece> boardMap) {
+        int dCol = Integer.compare(targetCol, col);
+        int dRow = Integer.compare(targetRow, row);
+
+        for (int c = col + dCol, r = row + dRow; c != targetCol || r != targetRow; c += dCol, r += dRow) {
+            if (boardMap.containsKey(c + "," + r)) return false;
+        }
+        return true;
     }
 }
