@@ -17,24 +17,6 @@ import javax.swing.*;
 
 import piece.*;
 
-class BackgroundPanel extends JPanel {
-    private Image backgroundImage;
-
-    public BackgroundPanel(String imagePath) {
-        setLayout(new BorderLayout(10, 10));
-        setOpaque(false);
-        backgroundImage = new ImageIcon(imagePath).getImage();
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        if (backgroundImage != null) {
-            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-        }
-    }
-}
-
 public class GamePanel extends JPanel implements Runnable, KeyListener {
     public static final int WIDTH = 1100;
     public static final int HEIGHT = 800;
@@ -77,7 +59,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
 
     public GamePanel() {
-        showGameModeDialog();
         if (gameMode == GameMode.HUMAN_VS_AI) {
             chessAI = new ChessAI(GamePanel.this);
         }
@@ -745,60 +726,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         justSplit = false;
     }
 
-    private void handleMove() {
-        char captureResult = ' ';
-
-        if (activeP.hittingP != null) {
-            captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
-        } else {
-            if (canPromote()) {
-                promotion = true;
-                return;
-            }
-        }
-
-        if (captureResult == 'b' || captureResult == 'a') {
-            copyPieces(simPieces, pieces);
-            if (activeP.type == Type.PAWN &&
-                    ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
-                promotion = true;
-
-                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
-                    isAITurnPending = true;
-                }
-
-                captureOutcome = captureResult;
-                return;
-            }
-        } else {
-            copyPieces(pieces, simPieces);
-        }
-
-        if (!justSplit) {
-            String moveNotation;
-            moveNotation = generateNotation(
-                    activeP,
-                    null,
-                    false,
-                    hasAmplified,
-                    amplifiedLocation,
-                    captureResult
-            );
-            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
-        }
-
-        if (castlingP != null) {
-            castlingP.updatePosition();
-        }
-        activeP.updatePosition();
-
-        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
-            isAITurnPending = true;
-        }
-
-        changePlayer();
-    }
-
     public void handleAISplitMove(Piece activeP) {
         this.activeP = activeP;
         justSplit = true;
@@ -966,149 +893,57 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         return notation.toString();
     }
+    private void handleMove() {
+        char captureResult = ' ';
 
-    public void showGameModeDialog() {
-        BackgroundPanel panel = new BackgroundPanel("C:\\Users\\anmol\\IdeaProjects\\quantum-chess\\src\\resources\\piece\\quantumbg.png");
-        panel.setPreferredSize(new Dimension(800, 800));
+        if (activeP.hittingP != null) {
+            captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+        } else {
+            if (canPromote()) {
+                promotion = true;
+                return;
+            }
+        }
 
-        JLabel titleLabel = new JLabel("Quantum Chess");
-        titleLabel.setFont(new Font("Book Antiqua", Font.BOLD, 80));
-        titleLabel.setBackground(Color.LIGHT_GRAY);
-        titleLabel.setForeground(new Color(240,230,203));
-        //titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        if (captureResult == 'b' || captureResult == 'a') {
+            copyPieces(simPieces, pieces);
+            if (activeP.type == Type.PAWN &&
+                    ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
+                promotion = true;
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
-        buttonPanel.setOpaque(false);
+                if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+                    isAITurnPending = true;
+                }
 
-        RoundedButton humanBtn = new RoundedButton("Play Against Human");
-        RoundedButton aiBtn = new RoundedButton("Play Against AI");
-        humanBtn.setPreferredSize(new Dimension(400, 80));
-        aiBtn.setPreferredSize(new Dimension(400, 80));
+                captureOutcome = captureResult;
+                return;
+            }
+        } else {
+            copyPieces(pieces, simPieces);
+        }
 
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        humanBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        aiBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        buttonPanel.add(Box.createVerticalStrut(250));
-        buttonPanel.add(titleLabel);
-        buttonPanel.add(Box.createVerticalStrut(60));
-        buttonPanel.add(humanBtn);
-        buttonPanel.add(Box.createVerticalStrut(10));
-        buttonPanel.add(aiBtn);
-        buttonPanel.add(Box.createVerticalStrut(10));
-        RoundedButton rulesBtn = new RoundedButton("Rules");
-        rulesBtn.setPreferredSize(new Dimension(400, 80));
-        rulesBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        RoundedButton creditsBtn = new RoundedButton("Credits");
-        creditsBtn.setPreferredSize(new Dimension(400, 80));
-        creditsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        //buttonPanel.add(Box.createVerticalStrut(10));
-        buttonPanel.add(rulesBtn);
-        buttonPanel.add(Box.createVerticalStrut(10));
-        buttonPanel.add(creditsBtn);
-
-
-        //panel.add(titleLabel, BorderLayout.NORTH);
-        panel.add(buttonPanel, BorderLayout.CENTER);
-
-        JDialog dialog = new JDialog((Frame) null, "Chess Setup", true);
-        dialog.setUndecorated(true);
-        dialog.setContentPane(panel); // 🌟 panel draws the PNG now!
-        dialog.pack();
-        dialog.setLocationRelativeTo(null);
-
-        creditsBtn.addActionListener(_ -> {
-            JPanel creditsPanel = new JPanel();
-            creditsPanel.setLayout(new BoxLayout(creditsPanel, BoxLayout.Y_AXIS));
-            creditsPanel.setBackground(new Color(40, 40, 40));
-            creditsPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
-
-            JLabel title = new JLabel("Game Credits");
-            title.setFont(new Font("Book Antiqua", Font.BOLD, 24));
-            title.setForeground(new Color(240,230,203));
-            title.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            JTextArea creditsText = new JTextArea(
-                    """
-                    • Created by Anmol & En
-                    
-                    • Special thanks to Yash and Tilas for their amazing ideas and playtesting!
-                    """
+        if (!justSplit) {
+            String moveNotation;
+            moveNotation = generateNotation(
+                    activeP,
+                    null,
+                    false,
+                    hasAmplified,
+                    amplifiedLocation,
+                    captureResult
             );
-            creditsText.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            creditsText.setForeground(new Color(240,230,203));
-            creditsText.setBackground(new Color(50, 50, 50));
-            creditsText.setEditable(false);
-            creditsText.setLineWrap(true);
-            creditsText.setWrapStyleWord(true);
-            creditsText.setAlignmentX(Component.CENTER_ALIGNMENT);
+            moveTrackerPanel.logMove((currentColor == WHITE ? "White: " : "Black: ") + moveNotation);
+        }
 
-            creditsPanel.add(title);
-            creditsPanel.add(Box.createVerticalStrut(10));
-            creditsPanel.add(creditsText);
+        if (castlingP != null) {
+            castlingP.updatePosition();
+        }
+        activeP.updatePosition();
 
-            JDialog creditsDialog = new JDialog((Frame) null, "Credits", true);
-            creditsDialog.getContentPane().add(creditsPanel);
-            creditsDialog.setSize(300, 200);
-            creditsDialog.setLocationRelativeTo(null);
-            creditsDialog.setVisible(true);
-        });
+        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+            isAITurnPending = true;
+        }
 
-        // Attach listeners BEFORE showing
-        rulesBtn.addActionListener(_ -> {
-            JPanel rulesPanel = new JPanel();
-            rulesPanel.setLayout(new BoxLayout(rulesPanel, BoxLayout.Y_AXIS));
-            rulesPanel.setBackground(new Color(40, 40, 40));
-            rulesPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
-
-            JLabel title = new JLabel("Chess Rules");
-            title.setFont(new Font("Book Antiqua", Font.BOLD, 24));
-            title.setForeground(new Color(240,230,203));
-            title.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            JTextArea rulesText = new JTextArea(
-                    """
-                    • Standard chess rules apply, check and checkmate are not used.
-                    • After you move, you have the option to split your piece.
-                    • Splitting a piece creates an identical piece with half the amplitude of the original.
-                    • Once a single piece has been split at least twice, you have the option to amplify any of the split pieces.
-                    • Amplifying a piece increases its amplitude, making it more likely to be selected in future moves.
-                    • Game ends when a king is captured or a draw is declared.
-                    • Don't lose.
-                   
-                    """
-            );
-            rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            rulesText.setForeground(new Color(240,230,203));
-            rulesText.setBackground(new Color(50, 50, 50));
-            rulesText.setEditable(false);
-            rulesText.setLineWrap(true);
-            rulesText.setWrapStyleWord(true);
-            rulesText.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            rulesPanel.add(title);
-            rulesPanel.add(Box.createVerticalStrut(10));
-            rulesPanel.add(rulesText);
-
-            JDialog rulesDialog = new JDialog((Frame) null, "Chess Rules", true);
-            rulesDialog.setUndecorated(false); // Keeps system window border
-            rulesDialog.getContentPane().add(rulesPanel);
-            rulesDialog.setSize(500, 300);
-            rulesDialog.setLocationRelativeTo(null);
-            rulesDialog.setVisible(true);
-        });
-        humanBtn.addActionListener(_ -> {
-            gameMode = GameMode.HUMAN_VS_HUMAN;
-            dialog.dispose();
-        });
-
-        aiBtn.addActionListener(_ -> {
-            gameMode = GameMode.HUMAN_VS_AI;
-            dialog.dispose();
-        });
-
-        dialog.setVisible(true);
+        changePlayer();
     }
 }
