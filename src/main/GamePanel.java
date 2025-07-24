@@ -53,7 +53,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private boolean debugProb = false;
     private boolean tabHeld = false;
     private Timer tabHoldTimer;
-    public GameMode gameMode = GameMode.HUMAN_VS_HUMAN;
+    public GameMode gameMode = GameMode.HUMAN_VS_AI;
     private ChessAI chessAI;
     public static boolean lastMoveWasHuman = true;
 
@@ -231,32 +231,32 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     public void setPieces() {
-        pieces.add(new Pawn(WHITE, 0, 2));
-        pieces.add(new Pawn(WHITE, 1, 2));
-        pieces.add(new Pawn(WHITE, 2, 2));
-        pieces.add(new Pawn(WHITE, 3, 2));
-
-        pieces.get(0).amplitude = Complex.ONE;
-        pieces.get(1).amplitude = Complex.ONE;
-        pieces.get(2).amplitude = Complex.ONE;
-        pieces.get(3).amplitude = Complex.ONE;
-
-        pieces.get(0).connectedPieces.add(pieces.get(1));
-        pieces.get(0).connectedPieces.add(pieces.get(2));
-        pieces.get(0).connectedPieces.add(pieces.get(3));
-
-        pieces.get(1).connectedPieces.add(pieces.get(0));
-        pieces.get(1).connectedPieces.add(pieces.get(2));
-        pieces.get(1).connectedPieces.add(pieces.get(3));
-
-        pieces.get(2).connectedPieces.add(pieces.get(0));
-        pieces.get(2).connectedPieces.add(pieces.get(1));
-        pieces.get(2).connectedPieces.add(pieces.get(3));
-
-        pieces.get(3).connectedPieces.add(pieces.get(0));
-        pieces.get(3).connectedPieces.add(pieces.get(1));
-        pieces.get(3).connectedPieces.add(pieces.get(2));
-        pieces.get(0).normalizeAmplitude();
+//        pieces.add(new Pawn(WHITE, 0, 2));
+//        pieces.add(new Pawn(WHITE, 1, 2));
+//        pieces.add(new Pawn(WHITE, 2, 2));
+//        pieces.add(new Pawn(WHITE, 3, 2));
+//
+//        pieces.get(0).amplitude = Complex.ONE;
+//        pieces.get(1).amplitude = Complex.ONE;
+//        pieces.get(2).amplitude = Complex.ONE;
+//        pieces.get(3).amplitude = Complex.ONE;
+//
+//        pieces.get(0).connectedPieces.add(pieces.get(1));
+//        pieces.get(0).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(1).connectedPieces.add(pieces.get(0));
+//        pieces.get(1).connectedPieces.add(pieces.get(2));
+//        pieces.get(1).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(2).connectedPieces.add(pieces.get(0));
+//        pieces.get(2).connectedPieces.add(pieces.get(1));
+//        pieces.get(2).connectedPieces.add(pieces.get(3));
+//
+//        pieces.get(3).connectedPieces.add(pieces.get(0));
+//        pieces.get(3).connectedPieces.add(pieces.get(1));
+//        pieces.get(3).connectedPieces.add(pieces.get(2));
+//        pieces.get(0).normalizeAmplitude();
 //
 //        // Initialize black pawns in row 2
 //        pieces.add(new Pawn(BLACK, 4, 6));
@@ -784,8 +784,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (isSplit) {
             notation.append("|");
         }
-        System.out.println(piece.col);
-        System.out.println(piece.preCol);
+
         // Castling
         if (piece.type == Type.KING && Math.abs(piece.col - piece.preCol) == 2) {
             if (piece.col == 6) notation.append("O-O");

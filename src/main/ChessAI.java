@@ -149,13 +149,14 @@ public class ChessAI {
                         break;
                     }
                 }
+                char captureResult = ' ';
                 if (captured != null) {
-                    pieces.remove(captured);
+                    captureResult = SuperPosition.resolveCapture(targetPiece, captured);
                 }
 
                 targetPiece.col = bestMove.targetCol;
                 targetPiece.row = bestMove.targetRow;
-                targetPiece.updatePosition();
+
                 GamePanel.lastMoveWasHuman = false;
 
                 gamePanel.copyPieces(pieces, simPieces);
@@ -167,9 +168,11 @@ public class ChessAI {
                         false,
                         false,
                         null,
-                        ' '
+                        captureResult
                 );
                 gamePanel.moveTrackerPanel.logMove("Black: " + notation);
+
+                targetPiece.updatePosition();
 
                 if (GamePanel.isKingCaptured()) {
                     gameOver = true;
@@ -181,8 +184,6 @@ public class ChessAI {
             }
         }
     }
-
-
 
     public static void showGameModeDialog() {
         String[] options = { "Play Against Human", "Play Against AI" };
