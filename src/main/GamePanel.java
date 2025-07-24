@@ -18,7 +18,7 @@ import javax.swing.*;
 import piece.*;
 
 class BackgroundPanel extends JPanel {
-    private Image backgroundImage;
+    private final Image backgroundImage;
 
     public BackgroundPanel(String imagePath) {
         setLayout(new BorderLayout(10, 10));
@@ -237,8 +237,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     private void buttonFormat(RoundedButton button){
         button.setFont(new Font("SansSerif",Font.PLAIN,20));
-        button.setBackground(new Color(0,0,0));
-        button.setForeground(Color.WHITE);
+        button.setForeground(new Color(240,230,203));
+        button.setBackground(new Color(50, 50, 50));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.addMouseListener(this.hoverEffect);
@@ -968,7 +968,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     public void showGameModeDialog() {
-        BackgroundPanel panel = new BackgroundPanel("C:\\Users\\anmol\\IdeaProjects\\quantum-chess\\src\\resources\\piece\\quantumbg.png");
+        BackgroundPanel panel = new BackgroundPanel("src/resources/piece/quantumbg.png");
         panel.setPreferredSize(new Dimension(800, 800));
 
         JLabel titleLabel = new JLabel("Quantum Chess");
@@ -982,7 +982,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         buttonPanel.setOpaque(false);
 
         RoundedButton humanBtn = new RoundedButton("Play Against Human");
+        buttonFormat(humanBtn);
         RoundedButton aiBtn = new RoundedButton("Play Against AI");
+        buttonFormat(aiBtn);
         humanBtn.setPreferredSize(new Dimension(400, 80));
         aiBtn.setPreferredSize(new Dimension(400, 80));
 
@@ -998,9 +1000,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         buttonPanel.add(aiBtn);
         buttonPanel.add(Box.createVerticalStrut(10));
         RoundedButton rulesBtn = new RoundedButton("Rules");
+        buttonFormat(rulesBtn);
         rulesBtn.setPreferredSize(new Dimension(400, 80));
         rulesBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         RoundedButton creditsBtn = new RoundedButton("Credits");
+        buttonFormat(creditsBtn);
         creditsBtn.setPreferredSize(new Dimension(400, 80));
         creditsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -1008,7 +1012,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         buttonPanel.add(rulesBtn);
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(creditsBtn);
-
 
         //panel.add(titleLabel, BorderLayout.NORTH);
         panel.add(buttonPanel, BorderLayout.CENTER);
@@ -1038,8 +1041,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                     """
             );
             creditsText.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            creditsText.setForeground(new Color(240,230,203));
-            creditsText.setBackground(new Color(50, 50, 50));
             creditsText.setEditable(false);
             creditsText.setLineWrap(true);
             creditsText.setWrapStyleWord(true);
@@ -1053,10 +1054,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             creditsDialog.getContentPane().add(creditsPanel);
             creditsDialog.setSize(300, 200);
             creditsDialog.setLocationRelativeTo(null);
+            creditsDialog.setAlwaysOnTop(true);
+            creditsDialog.requestFocus();
             creditsDialog.setVisible(true);
         });
 
-        // Attach listeners BEFORE showing
         rulesBtn.addActionListener(_ -> {
             JPanel rulesPanel = new JPanel();
             rulesPanel.setLayout(new BoxLayout(rulesPanel, BoxLayout.Y_AXIS));
@@ -1081,8 +1083,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                     """
             );
             rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            rulesText.setForeground(new Color(240,230,203));
-            rulesText.setBackground(new Color(50, 50, 50));
             rulesText.setEditable(false);
             rulesText.setLineWrap(true);
             rulesText.setWrapStyleWord(true);
@@ -1097,6 +1097,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             rulesDialog.getContentPane().add(rulesPanel);
             rulesDialog.setSize(500, 300);
             rulesDialog.setLocationRelativeTo(null);
+            rulesDialog.setAlwaysOnTop(true);
+            rulesDialog.requestFocus();
             rulesDialog.setVisible(true);
         });
         humanBtn.addActionListener(_ -> {
