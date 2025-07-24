@@ -4,7 +4,6 @@ import piece.*;
 
 import javax.swing.*;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 
@@ -15,7 +14,7 @@ public class ChessAI {
     private static final int WHITE = 0;
     private static final int BLACK = 1;
     private boolean gameOver = false;
-    private GamePanel gamePanel;
+    private final GamePanel gamePanel;
     public ChessAI(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
     }
@@ -162,9 +161,15 @@ public class ChessAI {
                 gamePanel.copyPieces(pieces, simPieces);
                 gamePanel.repaint();
 
-                String notation = gamePanel.generateMoveNotation(targetPiece);
+                String notation = gamePanel.generateNotation(
+                        targetPiece,
+                        null,
+                        false,
+                        false,
+                        null,
+                        ' '
+                );
                 gamePanel.moveTrackerPanel.logMove("Black: " + notation);
-                gamePanel.chatPanel.automsg("Black (AI): " + notation);
 
                 if (GamePanel.isKingCaptured()) {
                     gameOver = true;
