@@ -1,6 +1,7 @@
 package piece;
 
 import main.Type;
+import java.util.List;
 
 public class Bishop extends Piece {
     public Bishop(int color, int col, int row) {
@@ -14,7 +15,7 @@ public class Bishop extends Piece {
 
     }
 
-    public boolean canMove(int targetCol, int targetRow) {
-        return this.isWithinBoard(targetCol, targetRow) && !this.isSameSquare(targetCol, targetRow) && Math.abs(targetCol - this.preCol) == Math.abs(targetRow - this.preRow) && this.isValidSquare(targetCol, targetRow) && !this.isPieceOnDiagonal(targetCol, targetRow);
+    public boolean canMove(int targetCol, int targetRow, List<Piece> board) {
+        return this.isWithinBoard(targetCol, targetRow) && !this.isSameSquare(targetCol, targetRow) && Math.abs(targetCol - this.preCol) == Math.abs(targetRow - this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnDiagonal(targetCol, targetRow);
     }
 }

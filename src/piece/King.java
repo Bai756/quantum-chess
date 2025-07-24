@@ -2,6 +2,7 @@ package piece;
 
 import main.GamePanel;
 import main.Type;
+import java.util.List;
 
 public class King extends Piece {
     public King(int color, int col, int row) {
@@ -15,13 +16,13 @@ public class King extends Piece {
 
     }
 
-    public boolean canMove(int targetCol, int targetRow) {
-        if (this.isWithinBoard(targetCol, targetRow) && (Math.abs(targetCol - this.preCol) + Math.abs(targetRow - this.preRow) == 1 || Math.abs(targetCol - this.preCol) * Math.abs(targetRow - this.preRow) == 1) && this.isValidSquare(targetCol, targetRow)) {
+    public boolean canMove(int targetCol, int targetRow, List<Piece> board) {
+        if (this.isWithinBoard(targetCol, targetRow) && (Math.abs(targetCol - this.preCol) + Math.abs(targetRow - this.preRow) == 1 || Math.abs(targetCol - this.preCol) * Math.abs(targetRow - this.preRow) == 1) && this.isValidSquare(targetCol, targetRow, board)) {
             return true;
         } else {
             if (!this.moved) {
                 if (targetCol == this.preCol + 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow)) {
-                    for(Piece piece : GamePanel.simPieces) {
+                    for(Piece piece : board) {
                         if (piece.col == this.preCol + 3 && piece.row == this.preRow && !piece.moved) {
                             GamePanel.castlingP = piece;
                             return true;
@@ -32,7 +33,7 @@ public class King extends Piece {
                 if (targetCol == this.preCol - 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow)) {
                     Piece[] p = new Piece[2];
 
-                    for(Piece piece : GamePanel.simPieces) {
+                    for(Piece piece : board) {
                         if (piece.col == this.preCol - 3 && piece.row == this.preRow) {
                             p[0] = piece;
                         }

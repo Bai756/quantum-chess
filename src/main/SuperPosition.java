@@ -83,9 +83,6 @@ public class SuperPosition {
 
         piece.normalizeAmplitude();
 
-        GamePanel.pieces.add(newPiece);
-        GamePanel.simPieces.add(newPiece);
-
         return newPiece;
     }
 
