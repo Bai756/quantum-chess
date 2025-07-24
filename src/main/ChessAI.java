@@ -2,10 +2,8 @@ package main;
 
 import piece.*;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
-
 
 import static main.GamePanel.pieces;
 import static main.GamePanel.simPieces;
@@ -14,80 +12,19 @@ public class ChessAI {
     private static final int WHITE = 0;
     private static final int BLACK = 1;
     private final GamePanel gamePanel;
+
     public ChessAI(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
     }
 
-
-    private static List<Move> getAllLegalMoves(List<Piece> board, int color) {
-        List<Move> legalMoves = new ArrayList<>();
-        for (Piece piece : board) {
-            if (piece.color != color) continue;
-            for (int col = 0; col < 8; col++) {
-                for (int row = 0; row < 8; row++) {
-                    if (piece.canMove(col, row)) {
-                        legalMoves.add(new Move(piece, col, row));
-                    }
-                }
-            }
-            // Castling logic for king
-            if (piece.type == Type.KING && !piece.moved) {
-                int row = (color == WHITE) ? 7 : 0;
-                // Kingside castling
-                Piece kingsideRook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == color && p.col == 7 && p.row == row && !p.moved) {
-                        kingsideRook = p;
-                        break;
-                    }
-                }
-                if (kingsideRook != null &&
-                        board.stream().noneMatch(p -> p.col > 4 && p.col < 7 && p.row == row) && // squares between king and rook are empty
-                        !isSquareAttacked(board, 4, row, color) &&
-                        !isSquareAttacked(board, 5, row, color) &&
-                        !isSquareAttacked(board, 6, row, color)) {
-                    legalMoves.add(new Move(piece, 6, row));
-                }
-                // Queenside castling
-                Piece queensideRook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == color && p.col == 0 && p.row == row && !p.moved) {
-                        queensideRook = p;
-                        break;
-                    }
-                }
-                if (queensideRook != null &&
-                        board.stream().noneMatch(p -> p.col > 0 && p.col < 4 && p.row == row) && // squares between king and rook are empty
-                        !isSquareAttacked(board, 4, row, color) &&
-                        !isSquareAttacked(board, 3, row, color) &&
-                        !isSquareAttacked(board, 2, row, color)) {
-                    legalMoves.add(new Move(piece, 2, row));
-                }
-            }
-        }
-        return legalMoves;
-    }
-
-    private static boolean isSquareAttacked(List<Piece> board, int col, int row, int color) {
-        int opponent = (color == WHITE) ? BLACK : WHITE;
-        for (Piece p : board) {
-            if (p.color == opponent && p.canMove(col, row)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static Piece findPiece(List<Piece> board, Piece reference) {
-        for (Piece p : board) {
-            if (p.type == reference.type &&
-                    p.color == reference.color &&
-                    p.col == reference.col &&
-                    p.row == reference.row) {
-                return p;
-            }
-        }
-        return null;
+    private static int getPieceValue(Type type) {
+        return switch (type) {
+            case PAWN -> 100;
+            case KNIGHT, BISHOP -> 300;
+            case ROOK -> 500;
+            case QUEEN -> 900;
+            case KING -> 10000;
+        };
     }
 
     private int evaluateMove(Move move, List<Piece> board) {
@@ -146,400 +83,259 @@ public class ChessAI {
         return false;
     }
 
-    private int getPieceValue(Type type) {
-        return switch (type) {
-            case PAWN -> 100;
-            case KNIGHT, BISHOP -> 300;
-            case ROOK -> 500;
-            case QUEEN -> 900;
-            case KING -> 10000;
-        };
-    }
-
-    // ChessAI.java
     public void performAIMove() {
-        System.out.println("AI is evaluating moves...");
+        System.out.println("AI is thinking...");
+        List<Move> legal = getAllLegalMoves(pieces, BLACK);
+        if (legal.isEmpty()) return;
 
-        List<Move> legalMoves = getAllLegalMoves(pieces, BLACK);
-        if (legalMoves.isEmpty()) {
-            System.out.println("AI has no legal moves.");
+        // Anmol's ai
+        Move bestMove = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (Move m : legal) {
+            int s = evaluateMove(m, pieces);
+            if (s > bestScore) {
+                bestScore = s;
+                bestMove = m;
+            }
+        }
+
+        // Negamax
+//        MinimaxResult result = negamax(pieces, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, +1);
+//        Move bestMove = result.move;
+        if (bestMove == null) {
             return;
         }
 
-        Move bestMove = null;
-        int bestScore = Integer.MIN_VALUE;
-        int depth = 4;
-
-        // Anmol's homemade chess AI
-//        for (Move move : legalMoves) {
-//            int score = evaluateMove(move, pieces);
-//            if (score > bestScore) {
-//                bestScore = score;
-//                bestMove = move;
-//            }
-//        }
-
-        // Negamax
-        MinimaxResult result = negamax(pieces, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, +1);
-        bestMove = result.move;
-
-        if (bestMove != null) {
-            Piece targetPiece = findPiece(pieces, bestMove.piece);
-            if (targetPiece != null) {
-                Piece captured = null;
-                for (Piece p : pieces) {
-                    if (p != targetPiece && p.col == bestMove.targetCol && p.row == bestMove.targetRow && p.color != targetPiece.color) {
-                        captured = p;
-                        break;
-                    }
-                }
-                char captureResult = ' ';
-                if (captured != null) {
-                    captureResult = SuperPosition.resolveCapture(targetPiece, captured);
-                }
-
-                targetPiece.col = bestMove.targetCol;
-                targetPiece.row = bestMove.targetRow;
-
-                GamePanel.lastMoveWasHuman = false;
-
-                gamePanel.copyPieces(pieces, simPieces);
-                gamePanel.repaint();
-
-                String notation = gamePanel.generateNotation(
-                        targetPiece,
-                        null,
-                        false,
-                        false,
-                        null,
-                        captureResult
-                );
-                gamePanel.moveTrackerPanel.logMove("Black: " + notation);
-
-                targetPiece.updatePosition();
-
-                if (GamePanel.isKingCaptured()) {
-                    gamePanel.gameOver = true;
-                } else if (gamePanel.isDrawByInsufficientMaterial()) {
-                    gamePanel.stalemate = true;
-                } else {
-                    gamePanel.changePlayer();
-                }
-            }
-        }
-    }
-
-    public static void showGameModeDialog() {
-        String[] options = { "Play Against Human", "Play Against AI" };
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Choose Game Mode",
-                "Chess Setup",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-        GameMode gameMode = (choice == 1) ? GameMode.HUMAN_VS_AI : GameMode.HUMAN_VS_HUMAN;
-    }
-
-    private static class MinimaxResult {
-        int score;
-        Move move;
-        MinimaxResult(int score, Move move) {
-            this.score = score;
-            this.move = move;
-        }
-    }
-
-    private boolean isGameOver(List<Piece> board) {
-        boolean whiteKing = false;
-        boolean blackKing = false;
-
-        for (Piece piece : board) {
-            if (piece.type == Type.KING) {
-                if (piece.color == WHITE) whiteKing = true;
-                if (piece.color == BLACK) blackKing = true;
-            }
-        }
-
-        return !(whiteKing && blackKing);
-    }
-
-    private int evaluateBoard(List<Piece> board) {
-        int score = 0;
-        int[] kingCol = new int[2];
-        int[] kingRow = new int[2];
-        int[] mobility = new int[2];
-        boolean[] kingInCheck = new boolean[2];
-
-        int totalMaterial = 0;
-        for (Piece p : board) {
-            if (p.type != Type.KING) totalMaterial += getPieceValue(p.type);
-        }
-        boolean isEndgame = totalMaterial < 2000;
-
-        // Find king positions
-        for (Piece p : board) {
-            if (p.type == Type.KING) {
-                kingCol[p.color] = p.col;
-                kingRow[p.color] = p.row;
-            }
-        }
-
-        for (int color = 0; color <= 1; color++) {
-            int sign = (color == BLACK) ? 1 : -1;
-            int kingStartCol = 4;
-            int kingStartRow = (color == WHITE) ? 7 : 0;
-            if (!isEndgame) {
-                // If king moved from the starting square and not castled, penalize
-                boolean kingMoved = !(kingCol[color] == kingStartCol && kingRow[color] == kingStartRow);
-                boolean castled = (kingCol[color] == 6 || kingCol[color] == 2);
-                if (kingMoved && !castled) {
-                    score -= sign * 100; // adjust penalty as needed
-                }
-            }
-        }
-
-        // Check if king is in check
-        for (int color = 0; color <= 1; color++) {
-            int oppColor = 1 - color;
-            for (Piece opp : board) {
-                if (opp.color == oppColor && opp.canMove(kingCol[color], kingRow[color])) {
-                    kingInCheck[color] = true;
-                    break;
-                }
-            }
-        }
-
-        for (Piece p : board) {
-            int pieceValue = getPieceValue(p.type);
-            int colorSign = (p.color == BLACK) ? 1 : -1;
-            score += colorSign * pieceValue;
-
-            // Center control
-            int centerBonus = 3 - Math.abs(3 - p.col) + 3 - Math.abs(3 - p.row);
-            score += colorSign * centerBonus * 25;
-
-            // Forward pawns and connected pawns
-            if (p.type == Type.PAWN) {
-                int forwardBonus = (p.color == BLACK) ? p.row : (7 - p.row);
-                score += colorSign * forwardBonus * 5;
-
-                // Connected pawns
-                for (Piece other : board) {
-                    if (other != p && other.type == Type.PAWN && other.color == p.color) {
-                        if (Math.abs(other.col - p.col) == 1 && Math.abs(other.row - p.row) == 1) {
-                            score += colorSign * 5;
-                        }
-                    }
-                }
-
-                // Penalize isolated pawns
-                boolean isIsolated = true;
-                for (Piece other : board) {
-                    if (other.type == Type.PAWN && other.color == p.color && Math.abs(other.col - p.col) <= 1 && other != p) {
-                        isIsolated = false;
-                        break;
-                    }
-                }
-                if (isIsolated) {
-                    score -= colorSign * 10;
-                }
-            }
-
-            // Mobility
-            int moves = 0;
-            for (int c = 0; c < 8; c++) {
-                for (int r = 0; r < 8; r++) {
-                    if (p.canMove(c, r)) moves++;
-                }
-            }
-            mobility[p.color] += moves;
-
-            // Penalize undeveloped pieces
-            if ((p.type == Type.BISHOP || p.type == Type.KNIGHT) &&
-                    (p.row == (p.color == WHITE ? 7 : 0))) {
-                score -= colorSign * 25;
-            }
-        }
-
-        // King safety: check, defenders, open file
-        for (int color = 0; color <= 1; color++) {
-            int sign = (color == BLACK) ? 1 : -1;
-            int kingColCastledShort = 6, kingColCastledLong = 2;
-            int kingRowCastle = (color == WHITE) ? 7 : 0;
-
-            boolean shortCastle = false;
-            boolean longCastle = false;
-            for (Piece p : board) {
-                if (p.type == Type.KING && p.color == color && p.col == kingColCastledShort && p.row == kingRowCastle) {
-                    // Look for rook on h1/h8
-                    for (Piece r : board) {
-                        if (r.type == Type.ROOK && r.color == color && r.col == 7 && r.row == kingRowCastle) {
-                            shortCastle = true;
-                            break;
-                        }
-                    }
-                }
-                // Long castle (queenside)
-                if (p.type == Type.KING && p.color == color && p.col == kingColCastledLong && p.row == kingRowCastle) {
-                    for (Piece r : board) {
-                        if (r.type == Type.ROOK && r.color == color && r.col == 0 && r.row == kingRowCastle) {
-                            longCastle = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (shortCastle) score += sign * 75;
-            if (longCastle) score += sign * 75;
-
-            // Penalize king in check
-            if (kingInCheck[color]) {
-                score -= sign * 500;
-            }
-
-            // Defenders
-            int defenders = 0;
-            for (Piece p : board) {
-                if (p.color == color && p.type != Type.KING) {
-                    if (Math.abs(p.col - kingCol[color]) <= 1 && Math.abs(p.row - kingRow[color]) <= 1) {
-                        defenders++;
-                    }
-                }
-            }
-            if (defenders < 2) {
-                score -= sign * 30 * (2 - defenders);
-            }
-
-            // Penalize king on open file
-            boolean pawnOnFile = false;
-            for (Piece p : board) {
-                if (p.type == Type.PAWN && p.color == color && p.col == kingCol[color]) {
-                    pawnOnFile = true;
-                    break;
-                }
-            }
-            if (!pawnOnFile) {
-                score -= sign * 10;
-            }
-        }
-
-        // Mobility difference
-        score += (mobility[BLACK] - mobility[WHITE]) * 2;
-
-        return score;
-    }
-
-    private Piece applyMove(List<Piece> board, Move move) {
-        Piece mover = findPiece(board, move.piece);
+        Piece mover = bestMove.piece;
         Piece captured = null;
-        // Handle normal capture
-        for (Piece p : board) {
-            if (p != mover && p.col == move.targetCol && p.row == move.targetRow && p.color != mover.color) {
+        mover.hittingP = null;
+        for (Piece p : pieces) {
+            if (p != mover && p.col == bestMove.targetCol && p.row == bestMove.targetRow && p.color != mover.color) {
                 captured = p;
+                mover.hittingP = captured;
                 break;
             }
         }
+        char captureOutcome = ' ';
         if (captured != null) {
-            board.remove(captured);
+            captureOutcome = SuperPosition.resolveCapture(mover, captured);
         }
-        // Castling: king moves two squares
-        if (mover.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
-            int row = mover.row;
-            if (move.targetCol == 6) { // Kingside
-                Piece rook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == mover.color && p.col == 7 && p.row == row) {
-                        rook = p;
-                        break;
-                    }
-                }
-                if (rook != null) {
-                    rook.col = 5;
-                }
-            } else if (move.targetCol == 2) { // Queenside
-                Piece rook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == mover.color && p.col == 0 && p.row == row) {
-                        rook = p;
-                        break;
-                    }
-                }
-                if (rook != null) {
-                    rook.col = 3;
-                }
-            }
-        }
-        mover.col = move.targetCol;
-        mover.row = move.targetRow;
-        return captured;
-    }
 
-    private void undoMove(List<Piece> board, Move move, Piece captured) {
-        Piece mover = findPiece(board, move.piece);
-        // Undo castling rook move
-        if (mover.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
-            int row = mover.row;
-            if (move.targetCol == 6) { // Kingside
-                Piece rook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == mover.color && p.col == 5 && p.row == row) {
-                        rook = p;
-                        break;
-                    }
-                }
-                if (rook != null) {
-                    rook.col = 7;
-                }
-            } else if (move.targetCol == 2) { // Queenside
-                Piece rook = null;
-                for (Piece p : board) {
-                    if (p.type == Type.ROOK && p.color == mover.color && p.col == 3 && p.row == row) {
-                        rook = p;
-                        break;
-                    }
-                }
-                if (rook != null) {
-                    rook.col = 0;
-                }
-            }
-        }
-        mover.col = move.fromCol;
-        mover.row = move.fromRow;
-        if (captured != null) {
-            board.add(captured);
+        mover.col = bestMove.targetCol;
+        mover.row = bestMove.targetRow;
+        mover.updatePosition();
+        GamePanel.lastMoveWasHuman = false;
+
+        gamePanel.copyPieces(pieces, simPieces);
+
+        System.out.println(bestMove.piece + " moved to " + bestMove.targetCol + "," + bestMove.targetRow);
+        System.out.println(mover.hittingP);
+//        System.out.println("AI move score: " + result.score);
+
+        String notation = gamePanel.generateNotation(mover, null, false, false, null, captureOutcome);
+        gamePanel.moveTrackerPanel.logMove("Black: " + notation);
+
+        if (GamePanel.isKingCaptured()) {
+            gamePanel.gameOver = true;
+        } else if (gamePanel.isDrawByInsufficientMaterial()) {
+            gamePanel.stalemate = true;
+        } else {
+            gamePanel.changePlayer();
         }
     }
 
     private MinimaxResult negamax(List<Piece> board, int depth, int alpha, int beta, int color) {
         if (depth == 0 || isGameOver(board)) {
-            int raw = evaluateBoard(board);
-            return new MinimaxResult(color * raw, null);
-        }
-
-        List<Move> moves = getAllLegalMoves(board, color == 1 ? BLACK : WHITE);
-        if (moves.isEmpty()) {
             return new MinimaxResult(color * evaluateBoard(board), null);
         }
 
-        Move best = null;
-        int max = Integer.MIN_VALUE;
-        for (Move m : moves) {
-            Piece captured = applyMove(board, m);
-            MinimaxResult child = negamax(board, depth - 1, -beta, -alpha, -color);
-            int score = -child.score;
-            undoMove(board, m, captured);
+        int maxScore = Integer.MIN_VALUE;
+        Move bestMove = null;
 
-            if (score > max) {
-                max = score;
-                best = m;
+        int sideToMove = (color == 1) ? BLACK : WHITE;
+        for (Move m : getAllLegalMoves(board, sideToMove)) {
+            List<Piece> next = simulateMove(board, m);
+            MinimaxResult child = negamax(next, depth - 1, -beta, -alpha, -color);
+            int score = -child.score;
+            if (score > maxScore) {
+                maxScore = score;
+                bestMove = m;
             }
             alpha = Math.max(alpha, score);
             if (alpha >= beta) break;
         }
-        return new MinimaxResult(max, best);
+
+        return new MinimaxResult(maxScore, bestMove);
+    }
+
+    private record MinimaxResult(int score, Move move) {
+    }
+
+    private static List<Move> getAllLegalMoves(List<Piece> board, int color) {
+        List<Move> moves = new ArrayList<>();
+        for (Piece p : board) {
+            if (p.color != color) continue;
+            // Normal moves
+            for (int c = 0; c < 8; c++)
+                for (int r = 0; r < 8; r++)
+                    if (p.canMove(c, r))
+                        moves.add(new Move(p, c, r));
+
+            // Castling
+            if (p.type == Type.KING && !p.moved) {
+                int row = p.row;
+                if (canCastleKingside(p, board, color, row))
+                    moves.add(new Move(p, 6, row));
+                if (canCastleQueenside(p, board, color, row))
+                    moves.add(new Move(p, 2, row));
+            }
+        }
+        return moves;
+    }
+
+    private static boolean canCastleKingside(Piece king, List<Piece> b, int color, int row) {
+        Piece rook = b.stream().filter(p ->
+                p.type == Type.ROOK && p.color == color
+                        && p.row == row && p.col == 7
+                        && !p.moved).findFirst().orElse(null);
+        if (rook == null) return false;
+        // empty f,g
+        if (b.stream().anyMatch(p -> p.row==row && (p.col==5||p.col==6))) return false;
+        // no checks on e,f,g
+        return !isSquareAttacked(b, 4, row, color)
+                && !isSquareAttacked(b, 5, row, color)
+                && !isSquareAttacked(b, 6, row, color);
+    }
+
+    private static boolean canCastleQueenside(Piece king, List<Piece> b, int color, int row) {
+        Piece rook = b.stream().filter(p ->
+                p.type == Type.ROOK && p.color == color
+                        && p.row == row && p.col == 0
+                        && !p.moved).findFirst().orElse(null);
+        if (rook == null) return false;
+        // empty b,c,d
+        if (b.stream().anyMatch(p -> p.row==row && (p.col>=1&&p.col<=3))) return false;
+        // no checks on e,d,c
+        return !isSquareAttacked(b, 4, row, color)
+                && !isSquareAttacked(b, 3, row, color)
+                && !isSquareAttacked(b, 2, row, color);
+    }
+
+    private static boolean isSquareAttacked(List<Piece> b, int col, int row, int color) {
+        int enemy = (color == WHITE) ? BLACK : WHITE;
+        return b.stream().anyMatch(p -> p.color == enemy && p.canMove(col, row));
+    }
+
+    private List<Piece> cloneBoard(List<Piece> board) {
+        List<Piece> c = new ArrayList<>();
+        for (Piece p : board) {
+            Piece q = switch(p.type) {
+                case PAWN -> new Pawn(p.color, p.col, p.row);
+                case KNIGHT -> new Knight(p.color, p.col, p.row);
+                case BISHOP -> new Bishop(p.color, p.col, p.row);
+                case ROOK -> new Rook(p.color, p.col, p.row);
+                case QUEEN -> new Queen(p.color, p.col, p.row);
+                case KING -> new King(p.color, p.col, p.row);
+            };
+            q.moved = p.moved;
+            c.add(q);
+        }
+        return c;
+    }
+
+    private List<Piece> simulateMove(List<Piece> board, Move move) {
+        List<Piece> newBoard = cloneBoard(board);
+        Piece mover = findPiece(newBoard, move.piece);
+        // Capture
+        newBoard.removeIf(p -> p != mover && p.col == move.targetCol && p.row == move.targetRow);
+
+        // Castling rook
+        if (mover.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
+            int row = mover.row;
+            if (move.targetCol == 6) {
+                Piece r = findPiece(newBoard, new Rook(mover.color, 7, row));
+                if (r != null) {
+                    r.col=5;
+                    r.moved = true;
+                }
+            } else {
+                Piece r = findPiece(newBoard, new Rook(mover.color,0,row));
+                if (r != null) {
+                    r.col = 3;
+                    r.moved = true;
+                }
+            }
+        }
+        mover.col = move.targetCol;
+        mover.row = move.targetRow;
+        mover.moved = true;
+        return newBoard;
+    }
+
+    private int evaluateBoard(List<Piece> board) {
+        int materialScore = 0;
+        int whiteCenter = 0, blackCenter = 0;
+        int whiteMobility = 0, blackMobility = 0;
+        boolean whiteCanCastle = false, blackCanCastle = false;
+        int[][] centerSquares = {{3,3},{3,4},{4,3},{4,4}};
+
+        for (Piece p : board) {
+            int v = getPieceValue(p.type);
+            if (p.color == BLACK) {
+                materialScore += v;
+            } else {
+                materialScore -= v;
+            }
+
+            // Center control
+            for (int[] sq : centerSquares) {
+                if (p.col == sq[0] && p.row == sq[1]) {
+                    if (p.color == BLACK) {
+                        blackCenter++;
+                    } else {
+                        whiteCenter++;
+                    }
+                }
+            }
+
+            // Mobility: one pass
+            for (int c = 0; c < 8; c++) {
+                for (int r = 0; r < 8; r++) {
+                    if (p.canMove(c, r)) {
+                        if (p.color == BLACK) {
+                            blackMobility++;
+                        } else {
+                            whiteMobility++;
+                        }
+                    }
+                }
+            }
+        }
+
+        int score = materialScore;
+        score += 20 * (blackCenter - whiteCenter);
+        score +=  2 * (blackMobility - whiteMobility);
+
+        return score;
+    }
+
+    private static boolean isGameOver(List<Piece> b) {
+        boolean white = false, black = false;
+        for (Piece p : b) {
+            if (p.type == Type.KING) {
+                if (p.color == WHITE) white = true;
+                else black = true;
+            }
+        }
+        return !(white && black);
+    }
+
+    private static Piece findPiece(List<Piece> board, Piece reference) {
+        for (Piece p : board) {
+            if (p.type == reference.type && p.color == reference.color
+                    && p.col == reference.col && p.row == reference.row)
+                return p;
+        }
+        return null;
     }
 }

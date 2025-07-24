@@ -341,6 +341,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     private void update() {
 //        System.out.println("Update running, color: " + currentColor + ", aiTurnPending: " + isAITurnPending);
+//        if (mouse.x >= 0 && mouse.x < 800 && mouse.y >= 0 && mouse.y < 800) {
+//            System.out.printf("Mouse over square: (%d, %d)\n", mouse.x / 100, mouse.y / 100);
+//        }
         if (promotion) {
             promotionPanel.setVisible(true);
         } else if (!gameOver) {
