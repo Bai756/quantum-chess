@@ -119,6 +119,8 @@ public class SuperPosition {
 
         for (Piece p : connectedGroup) {
             p.amplitude = meanAmp.multiply(2).subtract(p.amplitude);
+        }
+        for (Piece p : connectedGroup) {
             if (p.amplitude.absSquared() < 0.01) {
                 removePiece(p);
             }
