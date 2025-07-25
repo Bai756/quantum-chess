@@ -1053,6 +1053,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             JDialog creditsDialog = new JDialog((Frame) null, "Credits", true);
             creditsDialog.getContentPane().add(creditsPanel);
             creditsDialog.setSize(300, 200);
+            creditsText.setForeground(new Color(240,230,203));
+            creditsText.setBackground(new Color(50, 50, 50));
             creditsDialog.setLocationRelativeTo(null);
             creditsDialog.setAlwaysOnTop(true);
             creditsDialog.requestFocus();
@@ -1096,6 +1098,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             rulesDialog.setUndecorated(false); // Keeps system window border
             rulesDialog.getContentPane().add(rulesPanel);
             rulesDialog.setSize(500, 300);
+            rulesText.setForeground(new Color(240,230,203));
+            rulesText.setBackground(new Color(50, 50, 50));
             rulesDialog.setLocationRelativeTo(null);
             rulesDialog.setAlwaysOnTop(true);
             rulesDialog.requestFocus();
