@@ -86,6 +86,7 @@ public class ChessAI {
 
     public void performAIMove() {
         System.out.println("AI is thinking...");
+        GamePanel.lastMoveWasHuman = false;
         List<Move> legal = getAllLegalMoves(pieces, BLACK);
         if (legal.isEmpty()) return;
 
@@ -109,68 +110,47 @@ public class ChessAI {
 
         Piece mover = bestMove.piece;
 
-        Piece captured = null;
         mover.hittingP = null;
         for (Piece p : pieces) {
             if (p != mover && p.col == bestMove.targetCol && p.row == bestMove.targetRow && p.color != mover.color) {
-                captured = p;
-                mover.hittingP = captured;
+                mover.hittingP = p;
                 break;
             }
         }
-        char captureOutcome = ' ';
-        if (captured != null) {
-            captureOutcome = SuperPosition.resolveCapture(mover, captured);
-        } else {
-            if (Math.random() < 0.4) {
-                System.out.println("AI chose split move");
-                mover.col = bestMove.targetCol;
-                mover.row = bestMove.targetRow;
-                mover.hittingP = null;
-                gamePanel.handleAISplitMove(mover);
-                return;
+        GamePanel.castlingP = null;
+        if (mover.type == Type.KING && Math.abs(bestMove.targetCol - bestMove.fromCol) == 2) {
+            Piece castlingRook = null;
+            if (bestMove.targetCol == 6) {
+                castlingRook = findPiece(pieces, new Rook(mover.color, 7, mover.row));
+            } else {
+                castlingRook = findPiece(pieces, new Rook(mover.color, 0, mover.row));
             }
+            GamePanel.castlingP = castlingRook;
         }
 
-        mover.col = bestMove.targetCol;
-        mover.row = bestMove.targetRow;
-        if (mover.type == Type.KING && Math.abs(bestMove.targetCol - bestMove.fromCol) == 2) {
-            int row = mover.row;
-            if (bestMove.targetCol == 6) {
-                Piece rook = findPiece(pieces, new Rook(mover.color, 7, row));
-                if (rook != null) {
-                    rook.col = 5;
-                    rook.moved = true;
-                    rook.updatePosition();
-                }
-            } else {
-                Piece rook = findPiece(pieces, new Rook(mover.color, 0, row));
-                if (rook != null) {
-                    rook.col = 3;
-                    rook.moved = true;
-                    rook.updatePosition();
-                }
-            }
+        // Decide move type and delegate
+        if (mover.hittingP != null ||
+                (mover.type == Type.PAWN && ((mover.color == BLACK && bestMove.targetRow == 7) || (mover.color == WHITE && bestMove.targetRow == 0)))) {
+            mover.col = bestMove.targetCol;
+            mover.row = bestMove.targetRow;
+            gamePanel.handleAIMove(mover);
+        } else if (Math.random() < 0.4) {
+            System.out.println("AI chose split move");
+            mover.col = bestMove.targetCol;
+            mover.row = bestMove.targetRow;
+            mover.hittingP = null;
+            gamePanel.handleAISplitMove(mover);
+        } else {
+            mover.col = bestMove.targetCol;
+            mover.row = bestMove.targetRow;
+            gamePanel.handleAIMove(mover);
         }
-        mover.updatePosition();
-        GamePanel.lastMoveWasHuman = false;
 
         gamePanel.copyPieces(pieces, simPieces);
 
         System.out.println(bestMove.piece + " moved to " + bestMove.targetCol + "," + bestMove.targetRow);
         System.out.println(mover.hittingP);
         System.out.println("AI move score: " + result.score);
-
-        String notation = gamePanel.generateNotation(mover, null, false, false, null, captureOutcome);
-        gamePanel.moveTrackerPanel.logMove("Black: " + notation);
-
-        if (GamePanel.isKingCaptured()) {
-            gamePanel.gameOver = true;
-        } else if (gamePanel.isDrawByInsufficientMaterial()) {
-            gamePanel.stalemate = true;
-        } else {
-            gamePanel.changePlayer();
-        }
     }
 
     private MinimaxResult minimax(List<Piece> board, int depth, int alpha, int beta, boolean isMaximizing) {
@@ -312,8 +292,18 @@ public class ChessAI {
             movingPiece.updatePosition();
         }
 
+        if (movingPiece.type == Type.PAWN && (movingPiece.row == 0 || movingPiece.row == 7)) {
+            // Promote to queen
+            Piece promoted = new Queen(movingPiece.color, movingPiece.col, movingPiece.row);
+            promoted.moved = true;
+            newBoard.remove(movingPiece);
+            newBoard.add(promoted);
+            movingPiece = promoted;
+        }
+
         // Capture
-        newBoard.removeIf(p -> p != movingPiece && p.col == move.targetCol && p.row == move.targetRow);
+        Piece finalMovingPiece = movingPiece;
+        newBoard.removeIf(p -> p != finalMovingPiece && p.col == move.targetCol && p.row == move.targetRow);
 
         // Castling rook
         if (movingPiece.type == Type.KING && Math.abs(move.targetCol - move.fromCol) == 2) {
@@ -398,6 +388,22 @@ public class ChessAI {
                 if (p.moved && (p.col == 6 || p.col == 2)) {
                     if (p.color == BLACK) materialScore += 100;
                     else materialScore -= 100;
+                }
+            }
+
+            if (p.type == Type.PAWN) {
+                if (p.color == BLACK && p.row == 7) {
+                    materialScore += 500;
+                } else if (p.color == WHITE && p.row == 0) {
+                    materialScore -= 500;
+                }
+            }
+
+            if (p.type == Type.PAWN) {
+                if (p.color == BLACK) {
+                    materialScore += p.row * 10;
+                } else {
+                    materialScore -= (7 - p.row) * 10;
                 }
             }
         }

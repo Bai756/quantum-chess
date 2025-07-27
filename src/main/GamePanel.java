@@ -23,7 +23,7 @@ class BackgroundPanel extends JPanel {
     public BackgroundPanel(String imagePath) {
         setLayout(new BorderLayout(10, 10));
         setOpaque(false);
-        backgroundImage = new ImageIcon(imagePath).getImage();
+        backgroundImage = new ImageIcon(getClass().getResource(imagePath)).getImage();
     }
 
     @Override
@@ -585,7 +585,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         else {
             lastMoveWasHuman = true;
         }
-        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
+//        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
     }
 
     private boolean canPromote() {
@@ -730,13 +730,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         if (castlingP != null) {
             Piece newRook = SuperPosition.handleSplit(castlingP);
+            GamePanel.pieces.add(newRook);
+            GamePanel.simPieces.add(newRook);
             newRook.row = castlingP.preRow;
             newRook.col = castlingP.preCol;
-            if (castlingP.col == 0) {
-                newRook.col += 3;
-            } else if (castlingP.col == 7) {
-                newRook.col -= 2;
-            }
             newRook.updatePosition();
         }
 
@@ -823,12 +820,12 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         if (castlingP != null) {
             Piece newRook = SuperPosition.handleSplit(castlingP);
-            newRook.row = castlingP.preRow;
-            newRook.col = castlingP.preCol;
+            GamePanel.pieces.add(newRook);
+            GamePanel.simPieces.add(newRook);
             if (castlingP.col == 0) {
-                newRook.col += 3;
+                newRook.col = 3;
             } else if (castlingP.col == 7) {
-                newRook.col -= 2;
+                newRook.col = 5;
             }
             newRook.updatePosition();
         }
@@ -838,36 +835,37 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         justSplit = false;
     }
 
-    public void handleAIMove(Piece activeP) {
+    public void handleAIMove(Piece piece) {
         char captureResult = ' ';
+        char promotionType = ' ';
 
-        if (activeP.hittingP != null) {
-            captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
-        } else {
-            if (canPromote()) {
-                promotion = true;
-                return;
+        if (piece.hittingP != null) {
+            captureResult = SuperPosition.resolveCapture(piece, piece.hittingP);
+        }
+        if (piece.type == Type.PAWN &&
+                ((piece.color == WHITE && piece.row == 0) || (piece.color == BLACK && piece.row == 7))) {
+            if (SuperPosition.checkPromotion(piece)) {
+                Queen newQueen = new Queen(piece.color, piece.col, piece.row);
+                pieces.add(newQueen);
+                simPieces.add(newQueen);
+                newQueen.updatePosition();
+                pieces.remove(piece);
+                simPieces.remove(piece);
+                promotionType = 'Q';
             }
+            promotion = false;
         }
 
         if (captureResult == 'b' || captureResult == 'a') {
             copyPieces(simPieces, pieces);
-            if (activeP.type == Type.PAWN &&
-                    ((currentColor == WHITE && activeP.row == 0) || (currentColor == BLACK && activeP.row == 7))) {
-                promotion = true;
-
-                captureOutcome = captureResult;
-                return;
-            }
         } else {
             copyPieces(pieces, simPieces);
         }
 
         if (!justSplit) {
-            String moveNotation;
-            moveNotation = generateNotation(
-                    activeP,
-                    null,
+            String moveNotation = generateNotation(
+                    piece,
+                    promotionType == 'Q' ? Type.QUEEN : null,
                     false,
                     hasAmplified,
                     amplifiedLocation,
@@ -879,10 +877,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (castlingP != null) {
             castlingP.updatePosition();
         }
-        activeP.updatePosition();
+        piece.updatePosition();
 
         isAITurnPending = false;
-
         changePlayer();
     }
 
@@ -968,7 +965,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     public void showGameModeDialog() {
-        BackgroundPanel panel = new BackgroundPanel("src/resources/piece/quantumbg.png");
+        BackgroundPanel panel = new BackgroundPanel("/resources/piece/quantumbg.png");
         panel.setPreferredSize(new Dimension(800, 800));
 
         JLabel titleLabel = new JLabel("Quantum Chess");
@@ -1035,7 +1032,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
             JTextArea creditsText = new JTextArea(
                     """
-                    • Created by Anmol & En
+                    • Created by En & Anmol
                     
                     • Special thanks to Yash and Tilas for their amazing ideas and playtesting!
                     """
@@ -1045,6 +1042,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             creditsText.setLineWrap(true);
             creditsText.setWrapStyleWord(true);
             creditsText.setAlignmentX(Component.CENTER_ALIGNMENT);
+            creditsText.setCaretColor(creditsPanel.getBackground());
 
             creditsPanel.add(title);
             creditsPanel.add(Box.createVerticalStrut(10));
@@ -1074,14 +1072,17 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
             JTextArea rulesText = new JTextArea(
                     """
-                    • Standard chess rules apply, check and checkmate are not used.
+                    • Standard chess rules apply, but no checks and checkmates.
+                    • To win, capture the opponent's king.
+                    
+                    • Each piece has an amplitude, which determines its probability of being selected for a move.
+                    • The amplitude is a complex number, with the square of its absolute value representing the probability.
+                    
                     • After you move, you have the option to split your piece.
                     • Splitting a piece creates an identical piece with half the amplitude of the original.
+                    
                     • Once a single piece has been split at least twice, you have the option to amplify any of the split pieces.
                     • Amplifying a piece increases its amplitude, making it more likely to be selected in future moves.
-                    • Game ends when a king is captured or a draw is declared.
-                    • Don't lose.
-                   
                     """
             );
             rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -1089,6 +1090,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             rulesText.setLineWrap(true);
             rulesText.setWrapStyleWord(true);
             rulesText.setAlignmentX(Component.CENTER_ALIGNMENT);
+            rulesText.setCaretColor(rulesPanel.getBackground());
 
             rulesPanel.add(title);
             rulesPanel.add(Box.createVerticalStrut(10));
@@ -1097,7 +1099,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             JDialog rulesDialog = new JDialog((Frame) null, "Chess Rules", true);
             rulesDialog.setUndecorated(false); // Keeps system window border
             rulesDialog.getContentPane().add(rulesPanel);
-            rulesDialog.setSize(500, 300);
+            rulesDialog.setSize(600, 400);
             rulesText.setForeground(new Color(240,230,203));
             rulesText.setBackground(new Color(50, 50, 50));
             rulesDialog.setLocationRelativeTo(null);
