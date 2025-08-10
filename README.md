@@ -16,6 +16,7 @@ Quantum Chess is a chess variant where each piece has a quantum amplitude, allow
 - **Split** a piece after moving, creating a quantum superposition.
 - **Amplify** a piece after it has been split at least twice.
 - **Win** by capturing the opponent's king.
+- **Probability** press tab to view a pieces probability.
 
 ## Setup
 
