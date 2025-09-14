@@ -308,9 +308,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 //        pieces.get(4).normalizeAmplitude();
 
         // Initialize white pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(WHITE, col, 6));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(WHITE, col, 6));
+        }
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
