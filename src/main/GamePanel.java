@@ -75,6 +75,12 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private ChessAI chessAI;
     public static boolean lastMoveWasHuman = true;
 
+    private boolean isAnimatingCapture = false;
+    private Piece animatingPiece = null;
+    private Piece animatingPieceDefender = null;
+    private javax.swing.Timer animationTimer;
+    private char captureResult = ' ';
+
 
     public GamePanel() {
         showGameModeDialog();
@@ -579,13 +585,32 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         chatPanel.automsg(itsurturn);
 
         if (gameMode == GameMode.HUMAN_VS_AI && isAITurnPending && lastMoveWasHuman) {
-            chessAI.performAIMove();
-            isAITurnPending = false;
+            Timer aiDelay = new Timer(400, _ -> {
+                chessAI.performAIMove();
+                isAITurnPending = false;
+            });
+            aiDelay.setRepeats(false);
+            aiDelay.start();
         }
         else {
             lastMoveWasHuman = true;
         }
 //        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
+    }
+
+    private void triggerCaptureAnimation(Piece attacker, Piece defender) {
+        isAnimatingCapture = true;
+        animatingPiece = attacker;
+        animatingPieceDefender = defender;
+        animationTimer = new javax.swing.Timer(500, _ -> {
+            isAnimatingCapture = false;
+            animatingPiece = null;
+            animationTimer.stop();
+            repaint();
+        });
+        animationTimer.setRepeats(false);
+        animationTimer.start();
+        repaint();
     }
 
     private boolean canPromote() {
@@ -698,6 +723,25 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             g2.setColor(Color.gray);
             g2.drawString("Draw", 200, 420);
         }
+
+        if (isAnimatingCapture && animatingPiece != null) {
+            Piece attacker = animatingPiece;
+            Piece defender = animatingPieceDefender;
+            Color attackerColor, defenderColor;
+            Color red = new Color(255, 0, 0, 128);
+            Color orange = new Color(255, 140, 0, 128);
+
+            switch (captureResult) {
+                case 'b' -> { attackerColor = red; defenderColor = red; }
+                case 'a' -> { attackerColor = red; defenderColor = orange; }
+                case 'd' -> { attackerColor = orange; defenderColor = red; }
+                default -> { attackerColor = orange; defenderColor = orange; }
+            }
+            g2.setColor(attackerColor);
+            g2.fillRect(attacker.col * 100, attacker.row * 100, 100, 100);
+            g2.setColor(defenderColor);
+            g2.fillRect(defender.col * 100, defender.row * 100, 100, 100);
+        }
     }
 
     private boolean isKingPresent(int color) {
@@ -743,10 +787,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handleMove() {
-        char captureResult = ' ';
 
         if (activeP.hittingP != null) {
             captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
+            triggerCaptureAnimation(activeP, activeP.hittingP);
         } else {
             if (canPromote()) {
                 promotion = true;
@@ -841,6 +885,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         if (piece.hittingP != null) {
             captureResult = SuperPosition.resolveCapture(piece, piece.hittingP);
+            triggerCaptureAnimation(piece, piece.hittingP);
         }
         if (piece.type == Type.PAWN &&
                 ((piece.color == WHITE && piece.row == 0) || (piece.color == BLACK && piece.row == 7))) {
