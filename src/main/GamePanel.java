@@ -1,21 +1,16 @@
 package main;
 
-import java.awt.AlphaComposite;
-import static java.awt.AlphaComposite.getInstance;
+import piece.*;
+
+import javax.swing.*;
 import java.awt.*;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import javax.swing.*;
 
-import piece.*;
+import static java.awt.AlphaComposite.getInstance;
 
 class BackgroundPanel extends JPanel {
     private final Image backgroundImage;
@@ -80,6 +75,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private Piece animatingPieceDefender = null;
     private javax.swing.Timer animationTimer;
     private char captureResult = ' ';
+    private int[] animationFrame = {0};
 
 
     public GamePanel() {
@@ -312,9 +308,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 //        pieces.get(4).normalizeAmplitude();
 
         // Initialize white pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(WHITE, col, 6));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(WHITE, col, 6));
+//        }
 
         // Initialize white major pieces
         pieces.add(new Rook(WHITE, 0, 7));
@@ -327,18 +323,18 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-        for (int col = 0; col < 8; col++) {
-            pieces.add(new Pawn(BLACK, col, 1));
-        }
+//        for (int col = 0; col < 8; col++) {
+//            pieces.add(new Pawn(BLACK, col, 1));
+//        }
         // Initialize black major pieces
-        pieces.add(new Rook(BLACK, 0, 0));
-        pieces.add(new Knight(BLACK, 1, 0));
-        pieces.add(new Bishop(BLACK, 2, 0));
-        pieces.add(new Queen(BLACK, 3, 0));
+//        pieces.add(new Rook(BLACK, 0, 0));
+//        pieces.add(new Knight(BLACK, 1, 0));
+//        pieces.add(new Bishop(BLACK, 2, 0));
+//        pieces.add(new Queen(BLACK, 3, 0));
         pieces.add(new King(BLACK, 4, 0));
-        pieces.add(new Bishop(BLACK, 5, 0));
-        pieces.add(new Knight(BLACK, 6, 0));
-        pieces.add(new Rook(BLACK, 7, 0));
+//        pieces.add(new Bishop(BLACK, 5, 0));
+//        pieces.add(new Knight(BLACK, 6, 0));
+//        pieces.add(new Rook(BLACK, 7, 0));
     }
 
     public void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
@@ -585,7 +581,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         chatPanel.automsg(itsurturn);
 
         if (gameMode == GameMode.HUMAN_VS_AI && isAITurnPending && lastMoveWasHuman) {
-            Timer aiDelay = new Timer(400, _ -> {
+            Timer aiDelay = new Timer(500, _ -> {
                 chessAI.performAIMove();
                 isAITurnPending = false;
             });
@@ -602,15 +598,22 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         isAnimatingCapture = true;
         animatingPiece = attacker;
         animatingPieceDefender = defender;
-        animationTimer = new javax.swing.Timer(500, _ -> {
-            isAnimatingCapture = false;
-            animatingPiece = null;
-            animationTimer.stop();
+        System.out.println("Triggering capture animation");
+        System.out.println("Attacker: " + attacker.toString());
+        System.out.println("Defender: " + defender.toString());
+
+        animationFrame = new int[]{0};
+        animationTimer = new javax.swing.Timer(30, _ -> {
+            animationFrame[0]++;
+            if (animationFrame[0] > 15) { // 15 frames ≈ 0.5 sec
+                isAnimatingCapture = false;
+                animatingPiece = null;
+                animatingPieceDefender = null;
+                animationTimer.stop();
+            }
             repaint();
         });
-        animationTimer.setRepeats(false);
         animationTimer.start();
-        repaint();
     }
 
     private boolean canPromote() {
@@ -724,23 +727,21 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             g2.drawString("Draw", 200, 420);
         }
 
-        if (isAnimatingCapture && animatingPiece != null) {
-            Piece attacker = animatingPiece;
-            Piece defender = animatingPieceDefender;
-            Color attackerColor, defenderColor;
-            Color red = new Color(255, 0, 0, 128);
-            Color orange = new Color(255, 140, 0, 128);
+        if (isAnimatingCapture && animatingPiece != null && animatingPieceDefender != null) {
+            float flash = (float) Math.abs(Math.sin(Math.PI * animationFrame[0] / 7.5));
+            float alpha = 0.7f * flash;
 
-            switch (captureResult) {
-                case 'b' -> { attackerColor = red; defenderColor = red; }
-                case 'a' -> { attackerColor = red; defenderColor = orange; }
-                case 'd' -> { attackerColor = orange; defenderColor = red; }
-                default -> { attackerColor = orange; defenderColor = orange; }
-            }
-            g2.setColor(attackerColor);
-            g2.fillRect(attacker.col * 100, attacker.row * 100, 100, 100);
-            g2.setColor(defenderColor);
-            g2.fillRect(defender.col * 100, defender.row * 100, 100, 100);
+            Color flashColor = switch (captureResult) {
+                case 'b' -> new Color(0, 255, 0, (int) (255 * alpha));
+                case 'a', 'd' -> new Color(255, 140, 0, (int) (255 * alpha));
+                default -> new Color(255, 0, 0, (int) (255 * alpha));
+            };
+
+            g2.setColor(flashColor);
+            g2.fillRect(animatingPiece.col * 100, animatingPiece.row * 100, 100, 100);
+            g2.fillRect(animatingPieceDefender.col * 100, animatingPieceDefender.row * 100, 100, 100);
+
+            g2.setComposite(original);
         }
     }
 
@@ -872,6 +873,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 newRook.col = 5;
             }
             newRook.updatePosition();
+            System.out.println("Castling split move: " + newRook);
         }
 
         awaitingMoveChoice = false;
@@ -880,7 +882,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     public void handleAIMove(Piece piece) {
-        char captureResult = ' ';
         char promotionType = ' ';
 
         if (piece.hittingP != null) {

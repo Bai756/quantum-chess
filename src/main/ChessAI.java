@@ -104,6 +104,29 @@ public class ChessAI {
         // Minimax
         MinimaxResult result = minimax(pieces, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         Move bestMove = result.move;
+
+        GamePanel.castlingP = null;
+
+        if (result.score == -100000) {
+            List<Move> kingMoves = new ArrayList<>();
+            for (Move m : legal) {
+                if (m.piece.type == Type.KING) {
+                    kingMoves.add(m);
+                }
+            }
+            if (!kingMoves.isEmpty()) {
+                Move kingMove = kingMoves.getFirst();
+                Piece king = kingMove.piece;
+                king.col = kingMove.targetCol;
+                king.row = kingMove.targetRow;
+                king.hittingP = null;
+                gamePanel.handleAISplitMove(king);
+                gamePanel.copyPieces(pieces, simPieces);
+                System.out.println("AI split king to avoid mate");
+                return;
+            }
+        }
+
         if (bestMove == null) {
             return;
         }
@@ -117,7 +140,7 @@ public class ChessAI {
                 break;
             }
         }
-        GamePanel.castlingP = null;
+
         if (mover.type == Type.KING && Math.abs(bestMove.targetCol - bestMove.fromCol) == 2) {
             Piece castlingRook = null;
             if (bestMove.targetCol == 6) {
