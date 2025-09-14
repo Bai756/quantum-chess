@@ -323,18 +323,18 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         pieces.add(new Rook(WHITE, 7, 7));
 
         // Initialize black pawns
-//        for (int col = 0; col < 8; col++) {
-//            pieces.add(new Pawn(BLACK, col, 1));
-//        }
+        for (int col = 0; col < 8; col++) {
+            pieces.add(new Pawn(BLACK, col, 1));
+        }
         // Initialize black major pieces
-//        pieces.add(new Rook(BLACK, 0, 0));
-//        pieces.add(new Knight(BLACK, 1, 0));
-//        pieces.add(new Bishop(BLACK, 2, 0));
-//        pieces.add(new Queen(BLACK, 3, 0));
+        pieces.add(new Rook(BLACK, 0, 0));
+        pieces.add(new Knight(BLACK, 1, 0));
+        pieces.add(new Bishop(BLACK, 2, 0));
+        pieces.add(new Queen(BLACK, 3, 0));
         pieces.add(new King(BLACK, 4, 0));
-//        pieces.add(new Bishop(BLACK, 5, 0));
-//        pieces.add(new Knight(BLACK, 6, 0));
-//        pieces.add(new Rook(BLACK, 7, 0));
+        pieces.add(new Bishop(BLACK, 5, 0));
+        pieces.add(new Knight(BLACK, 6, 0));
+        pieces.add(new Rook(BLACK, 7, 0));
     }
 
     public void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
