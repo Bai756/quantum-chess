@@ -16,11 +16,12 @@ Quantum Chess is a chess variant where each piece has a quantum amplitude, allow
 - **Split** a piece after moving, creating a quantum superposition.
 - **Amplify** a piece after it has been split at least twice.
 - **Win** by capturing the opponent's king.
+- **Probability** press tab to view a piece's probability.
 
 ## Setup
 
 1. **Requirements**:
-    - Java 17 or higher
+    - Java 24
     - IntelliJ IDEA or any Java IDE
 
 2. **Clone the repository**:
@@ -28,3 +29,7 @@ Quantum Chess is a chess variant where each piece has a quantum amplitude, allow
 3. **Run the game**:
     - Open the project in your IDE.
     - Run `src/main/Main.java`.
+  
+## Download releases
+
+If you have a JRE then from the [release page](https://github.com/Bai756/quantum-chess/releases/tag/chess) you can download and run the Quantum-Chess.jar. If you don't, there is no mac version, but if you are on windows, you can install the QuantumChess.exe.
