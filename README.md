@@ -9,6 +9,7 @@ Quantum Chess is a chess variant where each piece has a quantum amplitude, allow
 - Pieces can split, creating identical pieces with half the amplitude.
 - Amplification increases a piece's amplitude after multiple splits.
 - Play against another human or an AI.
+- Tutorial
 
 ## Gameplay
 
