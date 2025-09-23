@@ -463,7 +463,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                         moveChoicePanel.setVisible(false);
                         return;
                     }
-                    if (!mouse.pressed && activeP != null && !awaitingMoveChoice) {
+                    if (!mouse.pressed && !awaitingMoveChoice) {
                         if (activeP.hittingP == null) {
                             activeP.resetPosition();
                             activeP = null;
@@ -555,6 +555,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             }
             checkCastling();
             validSquare = true;
+        }
+        if (tutorial != null && tutorial.step == 0) {
+            if (activeP.row != 4) {
+                validSquare = false;
+            }
         }
     }
 
@@ -944,10 +949,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private void handleMove() {
         if (tutorial != null) {
             if (tutorial.step == 0) {
-                // Check if pawn moved from (4,6) to (4,4) or (4,5)
-                if (activeP instanceof Pawn && activeP.preCol == 4 && activeP.preRow == 6 &&
-                        (activeP.col == 4 && activeP.row == 4 || activeP.col == 4 && activeP.row == 5)) {
-                    tutorial.advanceStep();
+                // Check if pawn moved from (4,6) to (4,4)
+                if (activeP instanceof Pawn && activeP.preCol == 4 && activeP.preRow == 6) {
+                    if (activeP.col == 4 && activeP.row == 4) {
+                        tutorial.advanceStep();
+                    }
                 }
             } else if (tutorial.step == 4) {
                 tutorial.advanceStep();
@@ -1383,6 +1389,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         } else if (step == 3) {
             tutorial.setBounds(600, 300, 500, 150);
             changePlayer();
+        } else if (step == 2) {
+            tutorial.setBounds(600, 300, 500, 150);
         } else if (step == 6) {
             tutorial.setBounds(600, 300, 500, 135);
         } else if (step == 7) {

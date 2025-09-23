@@ -97,9 +97,9 @@ public class TutorialPanel extends JPanel {
     private void setStep(int s) {
         step = s;
         switch (step) {
-            case 0 -> tutorialText.setText("Move your e pawn forward.");
+            case 0 -> tutorialText.setText("Move your e pawn forward 2 squares.");
             case 1 -> tutorialText.setText("Try splitting your e pawn.");
-            case 2 -> tutorialText.setText("Hold tab to see the probabilities.");
+            case 2 -> tutorialText.setText("Hold tab to see the probabilities. The number is the percentage chance the piece is there.");
             case 3 -> tutorialText.setText("(Pieces moved and added just for tutorial)\nIf you split a piece at least twice, you can amplify it. Amplify your e pawn.");
             case 4 -> tutorialText.setText("Try capturing a split piece and see what happens.");
             case 5 -> tutorialText.setText("If green, you've captured the piece. If orange, only the attacker or defender was there and you did not capture the piece. If red, both pieces were not there. Read the rules for more information.");
