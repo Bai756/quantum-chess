@@ -110,7 +110,14 @@ public class ChessAI {
         if (result.score == -100000) {
             List<Move> kingMoves = new ArrayList<>();
             for (Move m : legal) {
-                if (m.piece.type == Type.KING) {
+                boolean occupied = false;
+                for (Piece p : pieces) {
+                    if (p.col == m.targetCol && p.row == m.targetRow && p.color != m.piece.color) {
+                        occupied = true;
+                        break;
+                    }
+                }
+                if (!occupied) {
                     kingMoves.add(m);
                 }
             }
