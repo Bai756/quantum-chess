@@ -15,4 +15,17 @@ public class Main {
 
         gp.launchGame();
     }
+
+    public static void restartApplication() {
+        String javaBin = System.getProperty("java.home") + "/bin/java";
+        String classPath = System.getProperty("java.class.path");
+        String className = Main.class.getName();
+
+        try {
+            new ProcessBuilder(javaBin, "-cp", classPath, className).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.exit(0);
+    }
 }

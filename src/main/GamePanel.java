@@ -77,6 +77,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private char captureResult = ' ';
     private int[] animationFrame = {0};
 
+    private TutorialPanel tutorial;
+    private boolean tutorialUpdated = false;
 
     public GamePanel() {
         showGameModeDialog();
@@ -181,6 +183,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 awaitingMoveChoice = false;
                 hasAmplified = true;
                 chatPanel.displaySystemMessage("Amplified at " + amplifiedLocation);
+                if (tutorial != null && tutorial.step == 3) {
+                    tutorial.advanceStep();
+                }
             }
         });
         this.add(amplifyButton);
@@ -368,6 +373,13 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (promotion) {
             promotionPanel.setVisible(true);
         } else if (!gameOver) {
+            if (tutorial != null) {
+                if (tutorial.step == 2) {
+                    if (tabHeld) {
+                        tutorial.advanceStep();
+                    }
+                }
+            }
             if (mouse.pressed) {
                 if (activeP == null) {
                     boolean found = false;
@@ -375,6 +387,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                         if (piece.color == currentColor && piece.col == mouse.x / 100 && piece.row == mouse.y / 100) {
                             activeP = piece;
                             boolean eligible = piece.connectedPieces.size() >= 2 && !hasAmplified;
+//                            System.out.printf("ActiveP: %s, eligible: %s\n", activeP, eligible);
                             amplifyButton.setVisible(eligible);
                             if (eligible) {
                                 amplifyButton.setBounds(piece.x - 10, piece.y + 30, 120, 40);
@@ -391,6 +404,79 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                     simulate();
                 } else {
                     amplifyButton.setVisible(false);
+                }
+            }
+
+            if (tutorial != null) {
+                int step = tutorial.step;
+
+                if (step == 0) {
+                    // Only allow selecting and moving the e-pawn (col 4, row 6)
+                    boolean isEPawn = activeP instanceof Pawn && activeP.preCol == 4;
+                    if (!isEPawn) {
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                        moveChoicePanel.setVisible(false);
+                        return;
+                    }
+                    // Only enable "Regular" button
+                    for (Component c : moveChoicePanel.getComponents()) {
+                        if (c instanceof JButton btn) {
+                            btn.setEnabled("Regular".equals(btn.getText()));
+                        }
+                    }
+                } else if (step == 1) {
+                    // Only allow split move for e-pawn
+                    boolean isEPawn = activeP instanceof Pawn && activeP.preCol == 4;
+                    if (!isEPawn) {
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                        moveChoicePanel.setVisible(false);
+                        return;
+                    }
+                    // Only enable "Split" button
+                    for (Component c : moveChoicePanel.getComponents()) {
+                        if (c instanceof JButton btn) {
+                            btn.setEnabled("Split".equals(btn.getText()));
+                        }
+                    }
+                } else if (step == 3) {
+                    // Only allow amplify for eligible e-pawn
+                    boolean canAmplify = activeP instanceof Pawn && activeP.preCol == 4;
+                    if (!canAmplify) {
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                        moveChoicePanel.setVisible(false);
+                        return;
+                    }
+                    // Disable all move choice buttons, only show amplify
+                    for (Component c : moveChoicePanel.getComponents()) {
+                        c.setEnabled(false);
+                    }
+                    amplifyButton.setVisible(true);
+                    amplifyButton.setEnabled(true);
+                } else if (step == 4) {
+                    boolean canCapture = activeP instanceof Pawn && activeP.preCol == 4 && activeP.row != 6;
+                    if (!canCapture) {
+                        activeP = null;
+                        amplifyButton.setVisible(false);
+                        moveChoicePanel.setVisible(false);
+                        return;
+                    }
+                    if (!mouse.pressed && activeP != null && !awaitingMoveChoice) {
+                        if (activeP.hittingP == null) {
+                            activeP.resetPosition();
+                            activeP = null;
+                            amplifyButton.setVisible(false);
+                            moveChoicePanel.setVisible(false);
+                            return;
+                        }
+                    }
+                } else {
+                    activeP = null;
+                    amplifyButton.setVisible(false);
+                    moveChoicePanel.setVisible(false);
+                    return;
                 }
             }
 
@@ -591,6 +677,66 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         else {
             lastMoveWasHuman = true;
         }
+
+        if (tutorial != null && !tutorialUpdated) {
+            int step = tutorial.step;
+            if (step == 1) {
+                Piece blackEPawn = null;
+                for (Piece p : GamePanel.pieces) {
+                    if (p.type == Type.PAWN && p.color == BLACK && p.col == 4 && p.row == 1) {
+                        blackEPawn = p;
+                        break;
+                    }
+                }
+                if (blackEPawn != null) {
+                    blackEPawn.row = 2;
+                    blackEPawn.updatePosition();
+                }
+                tutorialUpdated = true;
+                changePlayer();
+            } else if (step == 3) {
+                Piece whitePawn = null;
+                Piece blackDPawn = null;
+                for (Piece p : GamePanel.pieces) {
+                    if (p.type == Type.PAWN && p.color == WHITE && p.col == 4 && p.row == 4) {
+                        whitePawn = p;
+                    }
+                    if (p.type == Type.PAWN && p.color == BLACK && p.col == 3) {
+                        blackDPawn = p;
+                    }
+                }
+                if (whitePawn != null) {
+                    // Adds another split pawn for the e pawn
+                    Pawn pawn = new Pawn(currentColor, whitePawn.col, whitePawn.row);
+                    pawn.row = 6;
+                    pawn.updatePosition();
+                    for (Piece piece : whitePawn.connectedPieces) {
+                        piece.connectedPieces.add(pawn);
+                        pawn.connectedPieces.add(piece);
+                    }
+                    whitePawn.connectedPieces.add(pawn);
+                    pawn.connectedPieces.add(whitePawn);
+                    whitePawn.normalizeAmplitude();
+                    simPieces.add(pawn);
+                    copyPieces(simPieces, pieces);
+                }
+                if (blackDPawn != null) {
+                    // Moves the d pawn and splits it
+                    Pawn pawn = new Pawn(BLACK, blackDPawn.col, blackDPawn.row);
+                    pawn.row = 2;
+                    pawn.updatePosition();
+                    pawn.connectedPieces.add(blackDPawn);
+                    blackDPawn.connectedPieces.add(pawn);
+                    blackDPawn.normalizeAmplitude();
+                    blackDPawn.row = 3;
+                    blackDPawn.updatePosition();
+                    simPieces.add(pawn);
+                    copyPieces(simPieces, pieces);
+                }
+                tutorialUpdated = true;
+            }
+        }
+
 //        System.out.println("Current color: " + currentColor + ", AI turn pending: " + isAITurnPending);
     }
 
@@ -598,9 +744,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         isAnimatingCapture = true;
         animatingPiece = attacker;
         animatingPieceDefender = defender;
-        System.out.println("Triggering capture animation");
-        System.out.println("Attacker: " + attacker.toString());
-        System.out.println("Defender: " + defender.toString());
+//        System.out.println("Triggering capture animation");
+//        System.out.println("Attacker: " + attacker.toString());
+//        System.out.println("Defender: " + defender.toString());
 
         animationFrame = new int[]{0};
         animationTimer = new javax.swing.Timer(30, _ -> {
@@ -659,6 +805,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         promotionPanel.setVisible(false);
         promotion = false;
         captureOutcome = ' ';
+
+        if (gameMode == GameMode.HUMAN_VS_AI && currentColor == WHITE) {
+            isAITurnPending = true;
+        }
 
         changePlayer();
     }
@@ -753,6 +903,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handleSplitMove() {
+        if (tutorial != null && tutorial.step == 1) {
+            tutorial.advanceStep();
+        }
+
         justSplit = true;
         Piece newPiece = SuperPosition.handleSplit(activeP);
         GamePanel.pieces.add(newPiece);
@@ -788,6 +942,17 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void handleMove() {
+        if (tutorial != null) {
+            if (tutorial.step == 0) {
+                // Check if pawn moved from (4,6) to (4,4) or (4,5)
+                if (activeP instanceof Pawn && activeP.preCol == 4 && activeP.preRow == 6 &&
+                        (activeP.col == 4 && activeP.row == 4 || activeP.col == 4 && activeP.row == 5)) {
+                    tutorial.advanceStep();
+                }
+            } else if (tutorial.step == 4) {
+                tutorial.advanceStep();
+            }
+        }
 
         if (activeP.hittingP != null) {
             captureResult = SuperPosition.resolveCapture(activeP, activeP.hittingP);
@@ -1028,12 +1193,32 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         buttonFormat(humanBtn);
         RoundedButton aiBtn = new RoundedButton("Play Against AI");
         buttonFormat(aiBtn);
-        humanBtn.setPreferredSize(new Dimension(400, 80));
-        aiBtn.setPreferredSize(new Dimension(400, 80));
+        humanBtn.setPreferredSize(new Dimension(400, 50));
+        aiBtn.setPreferredSize(new Dimension(400, 50));
+
+        RoundedButton tutorialBtn = new RoundedButton("Tutorial");
+        buttonFormat(tutorialBtn);
+        tutorialBtn.setPreferredSize(new Dimension(400, 50));
+
+        RoundedButton rulesBtn = new RoundedButton("Rules");
+        buttonFormat(rulesBtn);
+        rulesBtn.setPreferredSize(new Dimension(400, 50));
+
+        RoundedButton creditsBtn = new RoundedButton("Credits");
+        buttonFormat(creditsBtn);
+        creditsBtn.setPreferredSize(new Dimension(400, 50));
+
+        RoundedButton quitBtn = new RoundedButton("Quit");
+        buttonFormat(quitBtn);
+        quitBtn.setPreferredSize(new Dimension(400, 50));
 
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         humanBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         aiBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        tutorialBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        rulesBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        creditsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        quitBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         buttonPanel.add(Box.createVerticalStrut(250));
         buttonPanel.add(titleLabel);
@@ -1042,26 +1227,20 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(aiBtn);
         buttonPanel.add(Box.createVerticalStrut(10));
-        RoundedButton rulesBtn = new RoundedButton("Rules");
-        buttonFormat(rulesBtn);
-        rulesBtn.setPreferredSize(new Dimension(400, 80));
-        rulesBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        RoundedButton creditsBtn = new RoundedButton("Credits");
-        buttonFormat(creditsBtn);
-        creditsBtn.setPreferredSize(new Dimension(400, 80));
-        creditsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        //buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(tutorialBtn);
+        buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(rulesBtn);
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(creditsBtn);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(quitBtn);
 
         //panel.add(titleLabel, BorderLayout.NORTH);
         panel.add(buttonPanel, BorderLayout.CENTER);
 
         JDialog dialog = new JDialog((Frame) null, "Chess Setup", true);
         dialog.setUndecorated(true);
-        dialog.setContentPane(panel); // 🌟 panel draws the PNG now!
+        dialog.setContentPane(panel);
         dialog.pack();
         dialog.setLocationRelativeTo(null);
 
@@ -1121,14 +1300,34 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                     • Standard chess rules apply, but no checks and checkmates.
                     • To win, capture the opponent's king.
                     
-                    • Each piece has an amplitude, which determines its probability of being selected for a move.
+                    • Each piece has an amplitude, which determines its probability of being selected for a move. (Just a probability of being selected, basically a percentage.)
                     • The amplitude is a complex number, with the square of its absolute value representing the probability.
                     
                     • After you move, you have the option to split your piece.
                     • Splitting a piece creates an identical piece with half the amplitude of the original.
+                    • After splitting the piece is technically in both spots so you can't move pieces through it and you can move each piece independently.
+                    • However, when you try to capture a piece, or something tries to capture you, the superposition collapses and you see where the pieces are (except for 'a').
                     
                     • Once a single piece has been split at least twice, you have the option to amplify any of the split pieces.
                     • Amplifying a piece increases its amplitude, making it more likely to be selected in future moves.
+                    
+                    • Hold tab to see the probabilities of the pieces.
+                    • When capturing pieces, 3 things can happen:
+                        • If green (or 'b' in the notation), you've captured the piece.
+                        • If orange (or 'a' or 'd' in the notation), only the attacker or defender was there and you did not capture the piece.
+                        • If red (or 'n' in the notation), both pieces were not there.");
+                    
+                    • This is how the notation works:
+                        • Standard chess notation applies in the middle (e.g. Nf3 for knight to f3 and dxe4 for the d pawn capturing e4)
+                        • When splitting a piece, the '|' symbol is used to separate the original piece from the split piece. (e.g. |Nf3| for moving the knight to f3 and splitting it)
+                        • When capturing, an extra character is added to the notation at the end:
+                            - 'b' for both pieces were there
+                            - 'a' for only the attacker was there
+                            - 'd' for only the defender was there
+                            - 'n' for neither piece was there
+                            - This shows the result of the capture (e.g. Nxe4a for knight takes e4 only the attacker was there).
+                        • If a piece was amplified, the starting square is added at the start of the notation with an '@' (e.g. e4@Nf3 the piece on e4 was amplified (doesn't have to be the knight) and then the knight moved to f3).)
+                        • Standard promotion notation applies at the end (e.g. h8=Q for queen promoting to queen on h8).
                     """
             );
             rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -1145,7 +1344,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             JDialog rulesDialog = new JDialog((Frame) null, "Chess Rules", true);
             rulesDialog.setUndecorated(false); // Keeps system window border
             rulesDialog.getContentPane().add(rulesPanel);
-            rulesDialog.setSize(600, 400);
+            rulesDialog.setSize(1000, 700);
             rulesText.setForeground(new Color(240,230,203));
             rulesText.setBackground(new Color(50, 50, 50));
             rulesDialog.setLocationRelativeTo(null);
@@ -1162,7 +1361,61 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             gameMode = GameMode.HUMAN_VS_AI;
             dialog.dispose();
         });
+        tutorialBtn.addActionListener(_ -> {
+            TutorialPanel tutorialPanel = new TutorialPanel();
+            setTutorial(tutorialPanel);
+            gameMode = GameMode.HUMAN_VS_HUMAN;
+            dialog.dispose();
+        });
+        quitBtn.addActionListener(_ -> {
+            System.exit(0);
+        });
 
         dialog.setVisible(true);
+    }
+
+    private void onTutorialStepChanged(int step) {
+        for (Component c : moveChoicePanel.getComponents()) {
+            c.setEnabled(true);
+        }
+        if (step == 5) {
+            tutorial.setBounds(600, 300, 500, 210);
+        } else if (step == 3) {
+            tutorial.setBounds(600, 300, 500, 150);
+            changePlayer();
+        } else if (step == 6) {
+            tutorial.setBounds(600, 300, 500, 135);
+        } else if (step == 7) {
+            tutorial.setBounds(600, 300, 500, 155);
+        } else {
+            tutorial.setBounds(600, 300, 500, 110);
+        }
+        if (step < 5) {
+            tutorial.nextButton.setVisible(false);
+        } else {
+            tutorial.nextButton.setVisible(true);
+        }
+
+        if (tutorial != null && step == tutorial.maxStep) {
+            this.remove(tutorial);
+            tutorial = null;
+            Main.restartApplication();
+        }
+        tutorialUpdated = false;
+
+        System.out.println("Tutorial step changed to " + step);
+
+    }
+
+    public void setTutorial(TutorialPanel tutorial) {
+        this.tutorial = tutorial;
+        tutorial.setBounds(600, 300, 500, 110);
+        this.add(tutorial);
+        this.setComponentZOrder(tutorial, 0);
+        tutorial.setVisible(true);
+        this.revalidate();
+        this.repaint();
+        tutorial.setOnStepChange(this::onTutorialStepChanged);
+        tutorial.nextButton.setVisible(false);
     }
 }

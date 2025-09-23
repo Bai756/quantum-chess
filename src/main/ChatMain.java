@@ -85,7 +85,7 @@ public class ChatMain extends JPanel{
             inputField.setText("");
         }
     }
-public void displaySystemMessage(String msg) {
+    public void displaySystemMessage(String msg) {
         chatArea.append("[System] " + msg + "\n");
     }
     public void automsg(String msg)
