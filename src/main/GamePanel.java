@@ -1044,7 +1044,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 newRook.col = 5;
             }
             newRook.updatePosition();
-            System.out.println("Castling split move: " + newRook);
+            castlingP = null;
         }
 
         awaitingMoveChoice = false;
@@ -1092,6 +1092,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
 
         if (castlingP != null) {
+            if (castlingP.col == 0) {
+                castlingP.col = 3;
+            } else if (castlingP.col == 7) {
+                castlingP.col = 5;
+            }
             castlingP.updatePosition();
         }
         piece.updatePosition();

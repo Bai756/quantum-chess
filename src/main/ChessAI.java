@@ -102,7 +102,7 @@ public class ChessAI {
 //        }
 
         // Minimax
-        MinimaxResult result = minimax(pieces, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+        MinimaxResult result = minimax(pieces, 2, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         Move bestMove = result.move;
 
         GamePanel.castlingP = null;
@@ -185,8 +185,7 @@ public class ChessAI {
 
     private MinimaxResult minimax(List<Piece> board, int depth, int alpha, int beta, boolean isMaximizing) {
         if (depth == 0 || isGameOver(board)) {
-            int eval = evaluateBoard(board);
-            return new MinimaxResult(eval, null);
+            return quiescence(board, alpha, beta, isMaximizing, 3);
         }
 
         int color = isMaximizing ? BLACK : WHITE;
@@ -222,6 +221,59 @@ public class ChessAI {
         }
 
         return new MinimaxResult(bestScore, bestMove);
+    }
+
+    private MinimaxResult quiescence(List<Piece> board, int alpha, int beta, boolean isMaximizing, int qDepth) {
+        int standPat = evaluateBoard(board);
+        if (isMaximizing) {
+            if (standPat >= beta) return new MinimaxResult(beta, null);
+            if (standPat > alpha) alpha = standPat;
+        } else {
+            if (standPat <= alpha) return new MinimaxResult(alpha, null);
+            if (standPat < beta) beta = standPat;
+        }
+
+        if (qDepth == 0) {
+            return new MinimaxResult(isMaximizing ? alpha : beta, null);
+        }
+
+        List<Move> captures = getCapturingMoves(board, isMaximizing ? BLACK : WHITE);
+        for (Move m : captures) {
+            List<Piece> next = simulateMove(board, m, false);
+            MinimaxResult child = quiescence(next, alpha, beta, !isMaximizing, qDepth - 1);
+            int score = child.score;
+
+            if (isMaximizing) {
+                if (score > alpha) alpha = score;
+                if (alpha >= beta) break;
+            } else {
+                if (score < beta) beta = score;
+                if (alpha >= beta) break;
+            }
+        }
+
+        return new MinimaxResult(isMaximizing ? alpha : beta, null);
+    }
+
+    private List<Move> getCapturingMoves(List<Piece> board, int color) {
+        List<Move> moves = new ArrayList<>();
+        for (Piece p : board) {
+            if (p.color != color) continue;
+            for (int c = 0; c < 8; c++) {
+                for (int r = 0; r < 8; r++) {
+                    if (p.col == c && p.row == r) continue;
+                    // Only consider moves that capture an enemy piece or promote a pawn
+                    int finalC = c;
+                    int finalR = r;
+                    boolean isCapture = board.stream().anyMatch(q -> q.col == finalC && q.row == finalR && q.color != color);
+                    boolean isPromotion = (p.type == Type.PAWN) && ((color == BLACK && r == 7) || (color == WHITE && r == 0));
+                    if ((isCapture || isPromotion) && p.canMove(c, r, board) && p.isValidSquare(c, r, board)) {
+                        moves.add(new Move(p, c, r));
+                    }
+                }
+            }
+        }
+        return moves;
     }
 
     private record MinimaxResult(int score, Move move) {
@@ -272,20 +324,25 @@ public class ChessAI {
     }
 
     private static boolean canCastleQueenside(Piece king, List<Piece> b, int color, int row) {
+        // Find the rook at (0, row)
         Piece rook = b.stream().filter(p ->
                 p.type == Type.ROOK && p.color == color
                         && p.row == row && p.col == 0
                         && !p.moved).findFirst().orElse(null);
-        if (rook == null) return false;
+        if (rook == null || king.moved) return false;
 
-        for (int c = 1; c <= 3; c++) {
+        // Squares between king and rook must be empty
+        for (int c = 1; c < 4; c++) {
             int finalC = c;
             if (b.stream().anyMatch(p -> p.row == row && p.col == finalC)) return false;
         }
 
-        return !isSquareAttacked(b, 4, row, color)
-                && !isSquareAttacked(b, 3, row, color)
-                && !isSquareAttacked(b, 2, row, color);
+        // King cannot castle through or into check
+        if (isSquareAttacked(b, 4, row, color) ||
+                isSquareAttacked(b, 3, row, color) ||
+                isSquareAttacked(b, 2, row, color)) return false;
+
+        return true;
     }
 
     private static boolean isSquareAttacked(List<Piece> board, int col, int row, int color) {
@@ -409,11 +466,28 @@ public class ChessAI {
             }
 
             if (p.type == Type.KING) {
-                // Penalize early king moves (not castling)
-                if (p.moved && p.col != 6 && p.col != 2) {
-                    if (p.color == BLACK) materialScore -= 50;
-                    else materialScore += 50;
+                // Penalize unsafe king
+                int penalty = 0;
+                // Check for adjacent enemy pieces
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nc = p.col + dx, nr = p.row + dy;
+                        if (nc < 0 || nc > 7 || nr < 0 || nr > 7) continue;
+                        for (Piece q : board) {
+                            if (q.col == nc && q.row == nr) {
+                                if (q.color != p.color) {
+                                    penalty += 100;
+                                } else {
+                                    penalty -= 50;
+                                }
+                            }
+                        }
+                    }
                 }
+//                if (p.color == BLACK) materialScore -= penalty;
+//                else materialScore += penalty;
+
                 // Reward castling
                 if (p.moved && (p.col == 6 || p.col == 2)) {
                     if (p.color == BLACK) materialScore += 100;
