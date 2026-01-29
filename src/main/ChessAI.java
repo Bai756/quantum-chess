@@ -332,7 +332,7 @@ public class ChessAI {
         if (rook == null || king.moved) return false;
 
         // Squares between king and rook must be empty
-        for (int c = 1; c < 4; c++) {
+        for (int c = 1; c <= 3; c++) {
             int finalC = c;
             if (b.stream().anyMatch(p -> p.row == row && p.col == finalC)) return false;
         }
@@ -340,7 +340,8 @@ public class ChessAI {
         // King cannot castle through or into check
         if (isSquareAttacked(b, 4, row, color) ||
                 isSquareAttacked(b, 3, row, color) ||
-                isSquareAttacked(b, 2, row, color)) return false;
+                isSquareAttacked(b, 2, row, color) ||
+                isSquareAttacked(b, 1, row, color)) return false;
 
         return true;
     }

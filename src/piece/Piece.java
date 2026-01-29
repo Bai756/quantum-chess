@@ -130,9 +130,9 @@ public class Piece implements Cloneable {
         }
     }
 
-    public boolean isPieceOnStraightLine(int targetCol, int targetRow) {
+    public boolean isPieceOnStraightLine(int targetCol, int targetRow, List<Piece> board) {
         for(int c = this.preCol - 1; c > targetCol; --c) {
-            for(Piece piece : GamePanel.simPieces) {
+            for(Piece piece : board) {
                 if (piece.col == c && piece.row == targetRow) {
                     this.hittingP = piece;
                     return true;
@@ -141,7 +141,7 @@ public class Piece implements Cloneable {
         }
 
         for(int c = this.preCol + 1; c < targetCol; ++c) {
-            for(Piece piece : GamePanel.simPieces) {
+            for(Piece piece : board) {
                 if (piece.col == c && piece.row == targetRow) {
                     this.hittingP = piece;
                     return true;
@@ -150,7 +150,7 @@ public class Piece implements Cloneable {
         }
 
         for(int r = this.preRow - 1; r > targetRow; --r) {
-            for(Piece piece : GamePanel.simPieces) {
+            for(Piece piece : board) {
                 if (piece.row == r && piece.col == targetCol) {
                     this.hittingP = piece;
                     return true;
@@ -159,7 +159,7 @@ public class Piece implements Cloneable {
         }
 
         for(int r = this.preRow + 1; r < targetRow; ++r) {
-            for(Piece piece : GamePanel.simPieces) {
+            for(Piece piece : board) {
                 if (piece.row == r && piece.col == targetCol) {
                     this.hittingP = piece;
                     return true;
@@ -170,12 +170,12 @@ public class Piece implements Cloneable {
         return false;
     }
 
-    public boolean isPieceOnDiagonal(int targetCol, int targetRow) {
+    public boolean isPieceOnDiagonal(int targetCol, int targetRow, List<Piece> board) {
         if (targetRow < this.preRow) {
             for(int c = this.preCol - 1; c > targetCol; --c) {
                 int diff = Math.abs(c - this.preCol);
 
-                for(Piece piece : GamePanel.simPieces) {
+                for(Piece piece : board) {
                     if (piece.col == c && piece.row == this.preRow - diff) {
                         this.hittingP = piece;
                         return true;
@@ -186,7 +186,7 @@ public class Piece implements Cloneable {
             for(int c = this.preCol + 1; c < targetCol; ++c) {
                 int diff = Math.abs(c - this.preCol);
 
-                for(Piece piece : GamePanel.simPieces) {
+                for(Piece piece : board) {
                     if (piece.col == c && piece.row == this.preRow - diff) {
                         this.hittingP = piece;
                         return true;
@@ -199,7 +199,7 @@ public class Piece implements Cloneable {
             for(int c = this.preCol - 1; c > targetCol; --c) {
                 int diff = Math.abs(c - this.preCol);
 
-                for(Piece piece : GamePanel.simPieces) {
+                for(Piece piece : board) {
                     if (piece.col == c && piece.row == this.preRow + diff) {
                         this.hittingP = piece;
                         return true;
@@ -210,7 +210,7 @@ public class Piece implements Cloneable {
             for(int c = this.preCol + 1; c < targetCol; ++c) {
                 int diff = Math.abs(c - this.preCol);
 
-                for(Piece piece : GamePanel.simPieces) {
+                for(Piece piece : board) {
                     if (piece.col == c && piece.row == this.preRow + diff) {
                         this.hittingP = piece;
                         return true;

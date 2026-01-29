@@ -21,7 +21,7 @@ public class King extends Piece {
             return true;
         } else {
             if (!this.moved) {
-                if (targetCol == this.preCol + 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow)) {
+                if (targetCol == this.preCol + 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow, board)) {
                     for(Piece piece : board) {
                         if (piece.col == this.preCol + 3 && piece.row == this.preRow && !piece.moved) {
                             GamePanel.castlingP = piece;
@@ -30,7 +30,7 @@ public class King extends Piece {
                     }
                 }
 
-                if (targetCol == this.preCol - 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow)) {
+                if (targetCol == this.preCol - 2 && targetRow == this.preRow && !this.isPieceOnStraightLine(targetCol, targetRow, board)) {
                     Piece[] p = new Piece[2];
 
                     for(Piece piece : board) {

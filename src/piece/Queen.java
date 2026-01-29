@@ -17,11 +17,11 @@ public class Queen extends Piece {
 
     public boolean canMove(int targetCol, int targetRow, List<Piece> board) {
         if (this.isWithinBoard(targetCol, targetRow) && !this.isSameSquare(targetCol, targetRow)) {
-            if (Math.abs(targetCol - this.preCol) == Math.abs(targetRow - this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnDiagonal(targetCol, targetRow)) {
+            if (Math.abs(targetCol - this.preCol) == Math.abs(targetRow - this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnDiagonal(targetCol, targetRow, board)) {
                 return true;
             }
 
-            return (targetCol == this.preCol || targetRow == this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnStraightLine(targetCol, targetRow);
+            return (targetCol == this.preCol || targetRow == this.preRow) && this.isValidSquare(targetCol, targetRow, board) && !this.isPieceOnStraightLine(targetCol, targetRow, board);
         }
 
         return false;

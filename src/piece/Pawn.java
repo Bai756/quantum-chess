@@ -30,7 +30,7 @@ public class Pawn extends Piece {
                 return true;
             }
 
-            if (targetCol == this.preCol && targetRow == this.preRow + moveValue * 2 && this.hittingP == null && !this.moved && !this.isPieceOnStraightLine(targetCol, targetRow)) {
+            if (targetCol == this.preCol && targetRow == this.preRow + moveValue * 2 && this.hittingP == null && !this.moved && !this.isPieceOnStraightLine(targetCol, targetRow, board)) {
                 return true;
             }
 
